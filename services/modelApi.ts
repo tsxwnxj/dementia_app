@@ -1,6 +1,6 @@
 import { auth } from './firebase';
 
-const MODEL_API_URL = 'http://172.21.11.171:8000/api/v1';
+const MODEL_API_URL = process.env.EXPO_PUBLIC_MODEL_API_URL ?? 'http://localhost:8000/api/v1';
 
 export interface MotionResult {
   is_correct: boolean;
