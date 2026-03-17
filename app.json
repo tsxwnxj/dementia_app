@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "dementia_app",
+    "slug": "dementia_app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "scheme": "dementia-app",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.junseojang.dementiaapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "손 협응 체조 동작 감지를 위해 카메라가 필요합니다."
+      }
+    },
+    "android": {
+      "package": "com.junseojang.dementiaapp",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#E6F4FE"
+      },
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-camera",
+      "expo-notifications"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4f2c6dd5-6cc7-454f-b9d8-c10a03acb5f2"
+      }
+    }
+  }
+}
