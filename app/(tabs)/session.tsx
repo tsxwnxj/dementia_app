@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Camera, useCameraDevice, useCameraPermission, useFrameProcessor } from 'react-native-vision-camera';
 import { WebView } from 'react-native-webview';
 import { Asset } from 'expo-asset';
 import { router } from 'expo-router';
 import { saveSession } from '../../services/firestore';
 import labelsData from '../../assets/labels.json';
+import { Worklets } from 'react-native-worklets-core';
 
 const SEQUENCE_LEN = 30;
 
 export default function SessionScreen() {
-  const [permission, requestPermission] = useCameraPermissions();
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const device = useCameraDevice('front');
   const [isRunning, setIsRunning] = useState(false);
   const [repCount, setRepCount] = useState(0);
   const [totalScore, setTotalScore] = useState(0);
@@ -19,11 +21,9 @@ export default function SessionScreen() {
   const [mediapipeReady, setMediapipeReady] = useState(false);
   const [htmlUri, setHtmlUri] = useState<string | null>(null);
 
-  const cameraRef = useRef<CameraView>(null);
   const webViewRef = useRef<WebView>(null);
   const frameBuffer = useRef<number[][]>([]);
-  const isCapturing = useRef(false);
-  const captureInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const frameCount = useRef(0);
 
   useEffect(() => {
     const loadHtml = async () => {
@@ -35,50 +35,30 @@ export default function SessionScreen() {
   }, []);
 
   useEffect(() => {
-    if (!permission?.granted) requestPermission();
+    if (!hasPermission) requestPermission();
   }, []);
 
-  useEffect(() => {
-    if (isRunning && mediapipeReady) {
-      captureInterval.current = setInterval(captureFrame, 100);
-    } else {
-      if (captureInterval.current) {
-        clearInterval(captureInterval.current);
-        captureInterval.current = null;
-      }
+  const sendFrameToWebView = Worklets.createRunOnJS((base64: string) => {
+    if (webViewRef.current) {
+      webViewRef.current.injectJavaScript(
+        `window.processFrame('data:image/jpeg;base64,${base64}'); true;`
+      );
     }
-    return () => {
-      if (captureInterval.current) clearInterval(captureInterval.current);
-    };
-  }, [isRunning, mediapipeReady]);
+  });
 
-  const captureFrame = async () => {
-    if (!cameraRef.current || isCapturing.current) return;
-    isCapturing.current = true;
-    try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.3,
-        base64: true,
-        skipProcessing: true,
-      });
-      if (photo?.base64 && webViewRef.current) {
-        webViewRef.current.injectJavaScript(
-          `window.processFrame('data:image/jpeg;base64,${photo.base64}'); true;`
-        );
-      }
-    } catch (e) {
-      console.error('캡처 오류:', e);
-    } finally {
-      isCapturing.current = false;
-    }
-  };
+  const frameProcessor = useFrameProcessor((frame) => {
+    'worklet';
+    frameCount.value = (frameCount.value ?? 0) + 1;
+    if (frameCount.value % 3 !== 0) return; // 3프레임마다 1번 처리
+    // 프레임을 base64로 변환해서 WebView로 전송
+    // TODO: frame to base64 변환
+  }, []);
 
   const handleWebViewMessage = (event: any) => {
     try {
       const msg = JSON.parse(event.nativeEvent.data);
       if (msg.type === 'ready') {
         setMediapipeReady(true);
-        console.log('MediaPipe 준비 완료');
         return;
       }
       if (msg.type === 'landmarks') {
@@ -97,12 +77,10 @@ export default function SessionScreen() {
   };
 
   const predictGesture = async (sequence: number[][]) => {
-    // TODO: Core ML 모델로 예측 (현재는 Mock)
     const mockScore = Math.floor(Math.random() * 30) + 70;
     const mockIdx = Math.floor(Math.random() * labelsData.labels.length);
     const mockGesture = labelsData.labels[mockIdx];
     const gestureKo = labelsData.labels_ko[mockGesture as keyof typeof labelsData.labels_ko] ?? mockGesture;
-
     setCurrentGesture(gestureKo);
     setConfidence(mockScore);
     setRepCount(prev => prev + 1);
@@ -129,7 +107,7 @@ export default function SessionScreen() {
     }
   };
 
-  if (!permission?.granted) {
+  if (!hasPermission) {
     return (
       <View style={styles.center}>
         <Text style={styles.permissionText}>카메라 권한이 필요해요</Text>
@@ -140,9 +118,22 @@ export default function SessionScreen() {
     );
   }
 
+  if (!device) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.permissionText}>카메라를 찾을 수 없어요</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing="front" />
+      <Camera
+        style={styles.camera}
+        device={device}
+        isActive={isRunning}
+        frameProcessor={isRunning ? frameProcessor : undefined}
+      />
       {htmlUri && (
         <WebView
           ref={webViewRef}
