@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Camera, useCameraDevice, useCameraPermission, useFrameProcessor } from 'react-native-vision-camera';
+import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { useTensorflowModel } from 'react-native-fast-tflite';
 import { router } from 'expo-router';
 import { saveSession } from '../../services/firestore';
 import labels from '../../assets/labels.json';
 
 const SEQUENCE_LEN = 30;
-const INPUT_SIZE = 126;
 
 export default function SessionScreen() {
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -21,43 +20,12 @@ export default function SessionScreen() {
   const frameBuffer = useRef<number[][]>([]);
   const isProcessing = useRef(false);
 
-  // MediaPipe Hand Landmarker 모델
   const handModel = useTensorflowModel(
-    require('../../assets/hand_landmarker.task')
+    require('../../assets/hand_landmarker.tflite')
   );
 
   useEffect(() => {
     if (!hasPermission) requestPermission();
-  }, []);
-
-  const processLandmarks = useCallback(async (landmarks: number[]) => {
-    frameBuffer.current.push(landmarks);
-    
-    if (frameBuffer.current.length > SEQUENCE_LEN) {
-      frameBuffer.current.shift();
-    }
-    
-    if (frameBuffer.current.length === SEQUENCE_LEN && !isProcessing.current) {
-      isProcessing.current = true;
-      
-      try {
-        // Core ML 모델로 예측 (NativeModules 통해 호출)
-        const sequence = frameBuffer.current.flat();
-        // 예측 결과 처리
-        const mockScore = Math.floor(Math.random() * 30) + 70;
-        const mockGestureIdx = Math.floor(Math.random() * labels.labels.length);
-        const mockGesture = labels.labels[mockGestureIdx];
-        
-        setCurrentGesture(labels.labels_ko[mockGesture as keyof typeof labels.labels_ko] ?? mockGesture);
-        setConfidence(mockScore);
-        setRepCount(prev => prev + 1);
-        setTotalScore(prev => prev + mockScore);
-        
-        frameBuffer.current = [];
-      } finally {
-        isProcessing.current = false;
-      }
-    }
   }, []);
 
   const finishSession = async () => {

@@ -41,6 +41,9 @@
       "expo-notifications",
       "react-native-vision-camera"
     ],
+    "assetBundlePatterns": [
+      "assets/**"
+    ],
     "experiments": {
       "typedRoutes": true
     },
