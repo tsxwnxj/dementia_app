@@ -14,7 +14,6 @@ class CameraDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
 public class GestureRecognitionModule: Module {
   static weak var shared: GestureRecognitionModule?
 
-  private var videoOutput: AVCaptureVideoDataOutput?
   private var cameraDelegate = CameraDelegate()
   private var frameBuffer: [[Float]] = []
   private let sequenceLen = 30
@@ -47,14 +46,12 @@ public class GestureRecognitionModule: Module {
       self.isRunning = true
       self.frameBuffer = []
       self.frameCount = 0
-      print("[GestureRecognition] 감지 시작")
       promise.resolve(true)
     }
 
     AsyncFunction("stopDetection") { (promise: Promise) in
       self.isRunning = false
       self.frameBuffer = []
-      print("[GestureRecognition] 감지 중지")
       promise.resolve(true)
     }
 
@@ -74,7 +71,7 @@ public class GestureRecognitionModule: Module {
 
   private func setupHandLandmarker() {
     guard let modelPath = Bundle.main.path(forResource: "hand_landmarker", ofType: "task") else {
-      print("[GestureRecognition] ❌ hand_landmarker.task 파일 없음")
+      print("[GestureRecognition] ❌ hand_landmarker.task 없음")
       return
     }
     do {
@@ -95,35 +92,23 @@ public class GestureRecognitionModule: Module {
   private func loadCoreMLModel() throws {
     if let modelURL = Bundle.main.url(forResource: "gesture_final", withExtension: "mlmodelc") {
       mlModel = try MLModel(contentsOf: modelURL)
-      print("[GestureRecognition] ✅ CoreML 모델 로드 완료 (mlmodelc)")
+      print("[GestureRecognition] ✅ CoreML 로드 완료 (mlmodelc)")
     } else if let modelURL = Bundle.main.url(forResource: "gesture_final", withExtension: "mlpackage") {
       let compiledURL = try MLModel.compileModel(at: modelURL)
       mlModel = try MLModel(contentsOf: compiledURL)
-      print("[GestureRecognition] ✅ CoreML 모델 로드 완료 (mlpackage)")
+      print("[GestureRecognition] ✅ CoreML 로드 완료 (mlpackage)")
     } else {
       throw NSError(domain: "GestureRecognition", code: 1, userInfo: [NSLocalizedDescriptionKey: "모델 파일을 찾을 수 없습니다"])
     }
   }
 
-  func attachOutput(to session: AVCaptureSession) {
-    let output = AVCaptureVideoDataOutput()
-    output.videoSettings = [
-      kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
-    ]
+  // 뷰에서 이미 만든 output에 delegate만 붙임
+  func attachOutput(to session: AVCaptureSession, existingOutput: AVCaptureVideoDataOutput) {
     cameraDelegate.onFrame = { [weak self] sampleBuffer in
       self?.processFrame(sampleBuffer)
     }
-    output.setSampleBufferDelegate(cameraDelegate, queue: DispatchQueue(label: "gesture.camera"))
-
-    session.beginConfiguration()
-    if session.canAddOutput(output) {
-      session.addOutput(output)
-      print("[GestureRecognition] ✅ 카메라 출력 연결 완료")
-    } else {
-      print("[GestureRecognition] ❌ 카메라 출력 연결 실패")
-    }
-    session.commitConfiguration()
-    videoOutput = output
+    existingOutput.setSampleBufferDelegate(cameraDelegate, queue: DispatchQueue(label: "gesture.camera"))
+    print("[GestureRecognition] ✅ delegate 연결 완료")
   }
 
   private func processFrame(_ sampleBuffer: CMSampleBuffer) {
@@ -140,7 +125,6 @@ public class GestureRecognitionModule: Module {
         let multiHandLandmarks = result.landmarks
         if !multiHandLandmarks.isEmpty {
           handDetected = true
-          print("[GestureRecognition] 손 감지됨! 손 개수: \(multiHandLandmarks.count)")
           for (i, handLandmarks) in multiHandLandmarks.prefix(2).enumerated() {
             let offset = i * 63
             for (j, lm) in handLandmarks.enumerated() {
@@ -149,12 +133,8 @@ public class GestureRecognitionModule: Module {
               landmarks[offset + j * 3 + 2] = lm.z
             }
           }
-        } else if frameCount % 30 == 0 {
-          print("[GestureRecognition] 손 미감지 (frame: \(frameCount))")
         }
       }
-    } else if frameCount % 30 == 0 {
-      print("[GestureRecognition] HandLandmarker 없음 또는 MPImage 변환 실패")
     }
 
     frameBuffer.append(landmarks)
@@ -165,7 +145,6 @@ public class GestureRecognitionModule: Module {
     if frameBuffer.count == sequenceLen {
       let handCount = frameBuffer.filter { $0.contains(where: { $0 != 0 }) }.count
       let handRatio = Float(handCount) / Float(sequenceLen)
-      print("[GestureRecognition] handRatio: \(handRatio)")
       if handRatio >= 0.5 {
         predictGesture(handDetected: handDetected)
       } else {
@@ -184,10 +163,7 @@ public class GestureRecognitionModule: Module {
   }
 
   private func predictGesture(handDetected: Bool) {
-    guard let model = mlModel else {
-      print("[GestureRecognition] ❌ 모델 없음")
-      return
-    }
+    guard let model = mlModel else { return }
 
     do {
       let inputArray = try MLMultiArray(shape: [1, NSNumber(value: sequenceLen), NSNumber(value: inputSize)], dataType: .float32)
@@ -213,7 +189,6 @@ public class GestureRecognitionModule: Module {
         let confidence = Int(min(max((maxScore + 3) / 6 * 100, 0), 100))
         let gesture = labels[maxIdx]
         let gestureKo = labelsKo[gesture] ?? gesture
-        print("[GestureRecognition] 예측 결과: \(gestureKo) (\(confidence)점)")
         DispatchQueue.main.async {
           self.sendEvent("onGestureResult", [
             "gesture": gesture,
@@ -223,8 +198,6 @@ public class GestureRecognitionModule: Module {
             "handDetected": handDetected
           ])
         }
-      } else {
-        print("[GestureRecognition] ❌ var_85 출력값 없음")
       }
     } catch {
       print("[GestureRecognition] ❌ 예측 오류:", error)

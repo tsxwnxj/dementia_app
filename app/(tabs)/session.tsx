@@ -30,16 +30,19 @@ export default function SessionScreen() {
     const init = async () => {
       try {
         await GestureRecognition.loadModel();
+        console.log('[Session] 모델 로드 완료');
         await GestureRecognition.startDetection();
+        console.log('[Session] 감지 시작');
       } catch (e) {
-        console.error('초기화 실패:', e);
+        console.error('[Session] 초기화 실패:', e);
       }
     };
     init();
 
     const subscription = emitter.addListener('onGestureResult', (result: any) => {
+      console.log('[Session] 결과:', JSON.stringify(result));
       setCurrentGesture(result.gestureKo);
-      setHandDetected(result.handDetected ?? true);
+      setHandDetected(result.handDetected ?? false);
     });
 
     return () => {
