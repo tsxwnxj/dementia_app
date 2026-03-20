@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["GestureRecognitionModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.gesturerecognition.GestureRecognitionModule"]
+  }
+}
