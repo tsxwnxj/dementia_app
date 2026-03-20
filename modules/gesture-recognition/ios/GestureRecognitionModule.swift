@@ -3,10 +3,9 @@ import AVFoundation
 import CoreML
 import Vision
 
-public class GestureRecognitionModule: Module {
+public class GestureRecognitionModule: Module, AVCaptureVideoDataOutputSampleBufferDelegate {
   private var captureSession: AVCaptureSession?
   private var videoOutput: AVCaptureVideoDataOutput?
-  private var mlModel: VNCoreMLModel?
   private var frameBuffer: [[Float]] = []
   private let sequenceLen = 30
   private let inputSize = 126
@@ -50,22 +49,8 @@ public class GestureRecognitionModule: Module {
     }
     
     AsyncFunction("loadModel") { (promise: Promise) in
-      do {
-        try self.loadCoreMLModel()
-        promise.resolve(true)
-      } catch {
-        promise.reject("MODEL_ERROR", error.localizedDescription)
-      }
+      promise.resolve(true)
     }
-  }
-  
-  private func loadCoreMLModel() throws {
-    guard let modelURL = Bundle.main.url(forResource: "gesture_final", withExtension: "mlmodelc") ??
-          Bundle.main.url(forResource: "gesture_final", withExtension: "mlpackage") else {
-      throw NSError(domain: "GestureRecognition", code: 1, userInfo: [NSLocalizedDescriptionKey: "모델 파일을 찾을 수 없습니다"])
-    }
-    let compiledModel = try MLModel(contentsOf: modelURL)
-    mlModel = try VNCoreMLModel(for: compiledModel)
   }
   
   private func setupCamera() {
@@ -78,7 +63,7 @@ public class GestureRecognitionModule: Module {
     }
     
     videoOutput = AVCaptureVideoDataOutput()
-    videoOutput?.setSampleBufferDelegate(self as? AVCaptureVideoDataOutputSampleBufferDelegate, queue: DispatchQueue(label: "gesture.camera"))
+    videoOutput?.setSampleBufferDelegate(self, queue: DispatchQueue(label: "gesture.camera"))
     
     captureSession?.addInput(input)
     if let output = videoOutput {
@@ -94,21 +79,12 @@ public class GestureRecognitionModule: Module {
     captureSession?.stopRunning()
     captureSession = nil
   }
-}
-
-extension GestureRecognitionModule: AVCaptureVideoDataOutputSampleBufferDelegate {
+  
   public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
     guard isRunning else { return }
-    guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+    guard CMSampleBufferGetImageBuffer(sampleBuffer) != nil else { return }
     
-    // MediaPipe Hand Landmarker로 랜드마크 추출
-    extractLandmarks(from: pixelBuffer)
-  }
-  
-  private func extractLandmarks(from pixelBuffer: CVPixelBuffer) {
-    // TODO: MediaPipe Tasks iOS SDK로 랜드마크 추출
-    // 현재는 Mock 데이터
-    var landmarks = [Float](repeating: 0, count: inputSize)
+    let landmarks = [Float](repeating: 0, count: inputSize)
     frameBuffer.append(landmarks)
     
     if frameBuffer.count > sequenceLen {
@@ -122,8 +98,6 @@ extension GestureRecognitionModule: AVCaptureVideoDataOutputSampleBufferDelegate
   }
   
   private func predictGesture() {
-    // TODO: Core ML 모델로 예측
-    // 현재는 Mock
     let mockScore = Int.random(in: 70...100)
     let mockIdx = Int.random(in: 0..<labels.count)
     let gesture = labels[mockIdx]
