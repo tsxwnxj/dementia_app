@@ -39,7 +39,7 @@
       "expo-secure-store",
       "expo-camera",
       "expo-notifications",
-      "react-native-vision-camera"
+      "./plugins/withGestureModel"
     ],
     "assetBundlePatterns": [
       "assets/**"

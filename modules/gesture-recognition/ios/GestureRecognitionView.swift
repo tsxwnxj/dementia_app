@@ -3,8 +3,6 @@ import AVFoundation
 
 class GestureRecognitionView: ExpoView {
   private var previewLayer: AVCaptureVideoPreviewLayer?
-  private(set) var captureSession: AVCaptureSession?
-  var onSessionReady: ((AVCaptureSession) -> Void)?
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -22,7 +20,6 @@ class GestureRecognitionView: ExpoView {
     }
 
     session.addInput(input)
-    captureSession = session
 
     let layer = AVCaptureVideoPreviewLayer(session: session)
     layer.videoGravity = .resizeAspectFill
@@ -33,7 +30,7 @@ class GestureRecognitionView: ExpoView {
     DispatchQueue.global(qos: .background).async {
       session.startRunning()
       DispatchQueue.main.async {
-        self.onSessionReady?(session)
+        GestureRecognitionModule.shared?.attachOutput(to: session)
       }
     }
   }

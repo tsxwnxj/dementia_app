@@ -11,12 +11,15 @@ class CameraDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
 }
 
 public class GestureRecognitionModule: Module {
+  static weak var shared: GestureRecognitionModule?
+
   private var videoOutput: AVCaptureVideoDataOutput?
   private var cameraDelegate = CameraDelegate()
   private var frameBuffer: [[Float]] = []
   private let sequenceLen = 30
   private let inputSize = 126
   private var isRunning = false
+  private var mlModel: MLModel?
 
   private let labels = ["cross_fist", "finger_fold", "finger_wave", "fingertip_clap", "fist_open", "hand_shake"]
   private let labelsKo: [String: String] = [
@@ -32,6 +35,10 @@ public class GestureRecognitionModule: Module {
     Name("GestureRecognition")
     Events("onGestureResult", "onError")
 
+    OnCreate {
+      GestureRecognitionModule.shared = self
+    }
+
     AsyncFunction("startDetection") { (promise: Promise) in
       self.isRunning = true
       self.frameBuffer = []
@@ -45,20 +52,31 @@ public class GestureRecognitionModule: Module {
     }
 
     AsyncFunction("loadModel") { (promise: Promise) in
-      promise.resolve(true)
+      do {
+        try self.loadCoreMLModel()
+        promise.resolve(true)
+      } catch {
+        promise.reject("MODEL_ERROR", error.localizedDescription)
+      }
     }
 
     View(GestureRecognitionView.self) {
-      Events("onLoad")
-      OnCreate { view in
-        view.onSessionReady = { [weak self] session in
-          self?.attachOutput(to: session)
-        }
-      }
+      Events("onSessionReady")
     }
   }
 
-  private func attachOutput(to session: AVCaptureSession) {
+  private func loadCoreMLModel() throws {
+    if let modelURL = Bundle.main.url(forResource: "gesture_final", withExtension: "mlmodelc") {
+      mlModel = try MLModel(contentsOf: modelURL)
+    } else if let modelURL = Bundle.main.url(forResource: "gesture_final", withExtension: "mlpackage") {
+      let compiledURL = try MLModel.compileModel(at: modelURL)
+      mlModel = try MLModel(contentsOf: compiledURL)
+    } else {
+      throw NSError(domain: "GestureRecognition", code: 1, userInfo: [NSLocalizedDescriptionKey: "모델 파일을 찾을 수 없습니다"])
+    }
+  }
+
+  func attachOutput(to session: AVCaptureSession) {
     let output = AVCaptureVideoDataOutput()
     cameraDelegate.onFrame = { [weak self] sampleBuffer in
       self?.processFrame(sampleBuffer)
@@ -90,18 +108,43 @@ public class GestureRecognitionModule: Module {
   }
 
   private func predictGesture() {
-    let mockScore = Int.random(in: 70...100)
-    let mockIdx = Int.random(in: 0..<labels.count)
-    let gesture = labels[mockIdx]
-    let gestureKo = labelsKo[gesture] ?? gesture
+    guard let model = mlModel else { return }
 
-    DispatchQueue.main.async {
-      self.sendEvent("onGestureResult", [
-        "gesture": gesture,
-        "gestureKo": gestureKo,
-        "score": mockScore,
-        "isCorrect": mockScore >= 70
-      ])
+    do {
+      let inputArray = try MLMultiArray(shape: [1, NSNumber(value: sequenceLen), NSNumber(value: inputSize)], dataType: .float32)
+      for i in 0..<sequenceLen {
+        for j in 0..<inputSize {
+          inputArray[[0, NSNumber(value: i), NSNumber(value: j)]] = NSNumber(value: frameBuffer[i][j])
+        }
+      }
+
+      let input = try MLDictionaryFeatureProvider(dictionary: ["input": inputArray])
+      let output = try model.prediction(from: input)
+
+      if let outputArray = output.featureValue(for: "var_85")?.multiArrayValue {
+        var maxScore: Float = -Float.infinity
+        var maxIdx = 0
+        for i in 0..<labels.count {
+          let score = outputArray[i].floatValue
+          if score > maxScore {
+            maxScore = score
+            maxIdx = i
+          }
+        }
+        let confidence = Int(min(max((maxScore + 3) / 6 * 100, 0), 100))
+        let gesture = labels[maxIdx]
+        let gestureKo = labelsKo[gesture] ?? gesture
+        DispatchQueue.main.async {
+          self.sendEvent("onGestureResult", [
+            "gesture": gesture,
+            "gestureKo": gestureKo,
+            "score": confidence,
+            "isCorrect": confidence >= 70
+          ])
+        }
+      }
+    } catch {
+      print("예측 오류:", error)
     }
   }
 }
