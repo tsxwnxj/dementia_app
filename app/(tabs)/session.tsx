@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { saveSession } from '../../services/firestore';
-import { requireNativeModule, EventEmitter } from 'expo-modules-core';
+import { requireNativeModule, requireNativeViewManager, EventEmitter } from 'expo-modules-core';
 
 const GestureRecognition = requireNativeModule('GestureRecognition');
+const GestureRecognitionView = requireNativeViewManager('GestureRecognition');
 const emitter = new EventEmitter(GestureRecognition);
 
 export default function SessionScreen() {
@@ -21,7 +22,6 @@ export default function SessionScreen() {
         await GestureRecognition.loadModel();
         await GestureRecognition.startCamera();
         setIsReady(true);
-        console.log('모듈 초기화 완료');
       } catch (e) {
         console.error('초기화 실패:', e);
       }
@@ -73,9 +73,7 @@ export default function SessionScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.cameraPlaceholder}>
-        <Text style={styles.cameraText}>카메라 실행 중</Text>
-      </View>
+      <GestureRecognitionView style={styles.camera} />
       {!isReady && (
         <View style={styles.loadingOverlay}>
           <Text style={styles.loadingText}>초기화 중...</Text>
@@ -109,9 +107,8 @@ export default function SessionScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  cameraPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a1a1a' },
-  cameraText: { color: '#666', fontSize: 16 },
-  loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.7)' },
+  camera: { flex: 1 },
+  loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   loadingText: { color: '#fff', fontSize: 18, fontWeight: '600' },
   infoBar: { position: 'absolute', top: 60, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 24 },
   infoText: { color: '#fff', fontSize: 18, fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },

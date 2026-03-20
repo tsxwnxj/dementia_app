@@ -1,38 +1,25 @@
 import ExpoModulesCore
-import WebKit
+import AVFoundation
 
-// This view will be used as a native component. Make sure to inherit from `ExpoView`
-// to apply the proper styling (e.g. border radius and shadows).
 class GestureRecognitionView: ExpoView {
-  let webView = WKWebView()
-  let onLoad = EventDispatcher()
-  var delegate: WebViewDelegate?
-
+  private var previewLayer: AVCaptureVideoPreviewLayer?
+  
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
-    clipsToBounds = true
-    delegate = WebViewDelegate { url in
-      self.onLoad(["url": url])
-    }
-    webView.navigationDelegate = delegate
-    addSubview(webView)
+    backgroundColor = .black
   }
-
+  
+  func setupPreview(with session: AVCaptureSession) {
+    previewLayer?.removeFromSuperlayer()
+    let layer = AVCaptureVideoPreviewLayer(session: session)
+    layer.videoGravity = .resizeAspectFill
+    layer.frame = bounds
+    self.layer.insertSublayer(layer, at: 0)
+    previewLayer = layer
+  }
+  
   override func layoutSubviews() {
-    webView.frame = bounds
-  }
-}
-
-class WebViewDelegate: NSObject, WKNavigationDelegate {
-  let onUrlChange: (String) -> Void
-
-  init(onUrlChange: @escaping (String) -> Void) {
-    self.onUrlChange = onUrlChange
-  }
-
-  func webView(_ webView: WKWebView, didFinish navigation: WKNavigation) {
-    if let url = webView.url {
-      onUrlChange(url.absoluteString)
-    }
+    super.layoutSubviews()
+    previewLayer?.frame = bounds
   }
 }

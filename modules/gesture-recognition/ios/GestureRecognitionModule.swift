@@ -2,7 +2,6 @@ import ExpoModulesCore
 import AVFoundation
 import CoreML
 
-// 별도 delegate 클래스
 class CameraDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
   var onFrame: ((CMSampleBuffer) -> Void)?
   
@@ -19,6 +18,7 @@ public class GestureRecognitionModule: Module {
   private let sequenceLen = 30
   private let inputSize = 126
   private var isRunning = false
+  private weak var gestureView: GestureRecognitionView?
   
   private let labels = ["cross_fist", "finger_fold", "finger_wave", "fingertip_clap", "fist_open", "hand_shake"]
   private let labelsKo = [
@@ -59,11 +59,15 @@ public class GestureRecognitionModule: Module {
     AsyncFunction("loadModel") { (promise: Promise) in
       promise.resolve(true)
     }
+
+    View(GestureRecognitionView.self) {
+      Events("onLoad")
+    }
   }
   
   private func setupCamera() {
-    captureSession = AVCaptureSession()
-    captureSession?.sessionPreset = .medium
+    let session = AVCaptureSession()
+    session.sessionPreset = .medium
     
     guard let frontCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
           let input = try? AVCaptureDeviceInput(device: frontCamera) else {
@@ -77,13 +81,20 @@ public class GestureRecognitionModule: Module {
     videoOutput = AVCaptureVideoDataOutput()
     videoOutput?.setSampleBufferDelegate(cameraDelegate, queue: DispatchQueue(label: "gesture.camera"))
     
-    captureSession?.addInput(input)
+    session.addInput(input)
     if let output = videoOutput {
-      captureSession?.addOutput(output)
+      session.addOutput(output)
+    }
+    
+    captureSession = session
+    
+    // 뷰에 프리뷰 연결
+    DispatchQueue.main.async {
+      self.gestureView?.setupPreview(with: session)
     }
     
     DispatchQueue.global(qos: .background).async {
-      self.captureSession?.startRunning()
+      session.startRunning()
     }
   }
   
