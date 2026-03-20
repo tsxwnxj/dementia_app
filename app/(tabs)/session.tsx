@@ -1,32 +1,113 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
-import { useTensorflowModel } from 'react-native-fast-tflite';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { WebView } from 'react-native-webview';
+import { Asset } from 'expo-asset';
 import { router } from 'expo-router';
 import { saveSession } from '../../services/firestore';
-import labels from '../../assets/labels.json';
+import labelsData from '../../assets/labels.json';
 
 const SEQUENCE_LEN = 30;
 
 export default function SessionScreen() {
-  const { hasPermission, requestPermission } = useCameraPermission();
-  const device = useCameraDevice('front');
+  const [permission, requestPermission] = useCameraPermissions();
   const [isRunning, setIsRunning] = useState(false);
   const [repCount, setRepCount] = useState(0);
   const [totalScore, setTotalScore] = useState(0);
   const [currentGesture, setCurrentGesture] = useState('');
   const [confidence, setConfidence] = useState(0);
-  
-  const frameBuffer = useRef<number[][]>([]);
-  const isProcessing = useRef(false);
+  const [mediapipeReady, setMediapipeReady] = useState(false);
+  const [htmlUri, setHtmlUri] = useState<string | null>(null);
 
-  const handModel = useTensorflowModel(
-    require('../../assets/hand_landmarker.tflite')
-  );
+  const cameraRef = useRef<CameraView>(null);
+  const webViewRef = useRef<WebView>(null);
+  const frameBuffer = useRef<number[][]>([]);
+  const isCapturing = useRef(false);
+  const captureInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (!hasPermission) requestPermission();
+    const loadHtml = async () => {
+      const asset = Asset.fromModule(require('../../assets/mediapipe.html'));
+      await asset.downloadAsync();
+      setHtmlUri(asset.localUri);
+    };
+    loadHtml();
   }, []);
+
+  useEffect(() => {
+    if (!permission?.granted) requestPermission();
+  }, []);
+
+  useEffect(() => {
+    if (isRunning && mediapipeReady) {
+      captureInterval.current = setInterval(captureFrame, 100);
+    } else {
+      if (captureInterval.current) {
+        clearInterval(captureInterval.current);
+        captureInterval.current = null;
+      }
+    }
+    return () => {
+      if (captureInterval.current) clearInterval(captureInterval.current);
+    };
+  }, [isRunning, mediapipeReady]);
+
+  const captureFrame = async () => {
+    if (!cameraRef.current || isCapturing.current) return;
+    isCapturing.current = true;
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.3,
+        base64: true,
+        skipProcessing: true,
+      });
+      if (photo?.base64 && webViewRef.current) {
+        webViewRef.current.injectJavaScript(
+          `window.processFrame('data:image/jpeg;base64,${photo.base64}'); true;`
+        );
+      }
+    } catch (e) {
+      console.error('캡처 오류:', e);
+    } finally {
+      isCapturing.current = false;
+    }
+  };
+
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const msg = JSON.parse(event.nativeEvent.data);
+      if (msg.type === 'ready') {
+        setMediapipeReady(true);
+        console.log('MediaPipe 준비 완료');
+        return;
+      }
+      if (msg.type === 'landmarks') {
+        frameBuffer.current.push(msg.data);
+        if (frameBuffer.current.length > SEQUENCE_LEN) {
+          frameBuffer.current.shift();
+        }
+        if (frameBuffer.current.length === SEQUENCE_LEN) {
+          predictGesture(frameBuffer.current);
+          frameBuffer.current = [];
+        }
+      }
+    } catch (e) {
+      console.error('WebView 메시지 오류:', e);
+    }
+  };
+
+  const predictGesture = async (sequence: number[][]) => {
+    // TODO: Core ML 모델로 예측 (현재는 Mock)
+    const mockScore = Math.floor(Math.random() * 30) + 70;
+    const mockIdx = Math.floor(Math.random() * labelsData.labels.length);
+    const mockGesture = labelsData.labels[mockIdx];
+    const gestureKo = labelsData.labels_ko[mockGesture as keyof typeof labelsData.labels_ko] ?? mockGesture;
+
+    setCurrentGesture(gestureKo);
+    setConfidence(mockScore);
+    setRepCount(prev => prev + 1);
+    setTotalScore(prev => prev + mockScore);
+  };
 
   const finishSession = async () => {
     if (repCount === 0) {
@@ -48,7 +129,7 @@ export default function SessionScreen() {
     }
   };
 
-  if (!hasPermission) {
+  if (!permission?.granted) {
     return (
       <View style={styles.center}>
         <Text style={styles.permissionText}>카메라 권한이 필요해요</Text>
@@ -59,21 +140,24 @@ export default function SessionScreen() {
     );
   }
 
-  if (!device) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.permissionText}>카메라를 찾을 수 없어요</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <Camera
-        style={styles.camera}
-        device={device}
-        isActive={true}
-      />
+      <CameraView ref={cameraRef} style={styles.camera} facing="front" />
+      {htmlUri && (
+        <WebView
+          ref={webViewRef}
+          source={{ uri: htmlUri }}
+          style={styles.hidden}
+          onMessage={handleWebViewMessage}
+          javaScriptEnabled
+          originWhitelist={['*']}
+        />
+      )}
+      {!mediapipeReady && (
+        <View style={styles.loadingOverlay}>
+          <Text style={styles.loadingText}>MediaPipe 로딩 중...</Text>
+        </View>
+      )}
       <View style={styles.infoBar}>
         <Text style={styles.infoText}>횟수: {repCount}</Text>
         <Text style={styles.infoText}>평균: {repCount > 0 ? Math.round(totalScore / repCount) : 0}점</Text>
@@ -88,6 +172,7 @@ export default function SessionScreen() {
         <TouchableOpacity
           style={[styles.captureButton, isRunning && styles.buttonActive]}
           onPress={() => setIsRunning(!isRunning)}
+          disabled={!mediapipeReady}
         >
           <Text style={styles.buttonText}>{isRunning ? '감지 중지' : '동작 감지 시작'}</Text>
         </TouchableOpacity>
@@ -102,8 +187,11 @@ export default function SessionScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   camera: { flex: 1 },
+  hidden: { width: 0, height: 0, opacity: 0 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFE' },
   permissionText: { fontSize: 16, color: '#424242', marginBottom: 16 },
+  loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  loadingText: { color: '#fff', fontSize: 18, fontWeight: '600' },
   infoBar: { position: 'absolute', top: 60, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 24 },
   infoText: { color: '#fff', fontSize: 18, fontWeight: '700', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   feedbackCard: { position: 'absolute', bottom: 160, left: 24, right: 24, padding: 16, borderRadius: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(76,175,80,0.85)' },

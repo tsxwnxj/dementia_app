@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</head>
+<body>
+  <video id="video" style="display:none" playsinline></video>
+  <canvas id="canvas" style="display:none"></canvas>
+  <script>
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.5,
+    });
+
+    hands.onResults((results) => {
+      const data = new Array(126).fill(0);
+      if (results.multiHandLandmarks) {
+        results.multiHandLandmarks.slice(0, 2).forEach((handLandmarks, i) => {
+          const offset = i * 63;
+          handLandmarks.forEach((lm, j) => {
+            data[offset + j * 3] = lm.x;
+            data[offset + j * 3 + 1] = lm.y;
+            data[offset + j * 3 + 2] = lm.z;
+          });
+        });
+      }
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'landmarks', data }));
+    });
+
+    // React Native에서 이미지 받아서 처리
+    window.processFrame = async (base64Image) => {
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.getElementById('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        await hands.send({ image: canvas });
+      };
+      img.src = base64Image;
+    };
+
+    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready' }));
+  </script>
+</body>
+</html>
