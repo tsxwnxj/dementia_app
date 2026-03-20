@@ -1,11 +1,20 @@
 import ExpoModulesCore
 import AVFoundation
 import CoreML
-import Vision
 
-public class GestureRecognitionModule: Module, AVCaptureVideoDataOutputSampleBufferDelegate {
+// 별도 delegate 클래스
+class CameraDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+  var onFrame: ((CMSampleBuffer) -> Void)?
+  
+  func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+    onFrame?(sampleBuffer)
+  }
+}
+
+public class GestureRecognitionModule: Module {
   private var captureSession: AVCaptureSession?
   private var videoOutput: AVCaptureVideoDataOutput?
+  private var cameraDelegate = CameraDelegate()
   private var frameBuffer: [[Float]] = []
   private let sequenceLen = 30
   private let inputSize = 126
@@ -23,7 +32,6 @@ public class GestureRecognitionModule: Module, AVCaptureVideoDataOutputSampleBuf
 
   public func definition() -> ModuleDefinition {
     Name("GestureRecognition")
-    
     Events("onGestureResult", "onError")
     
     AsyncFunction("startCamera") { (promise: Promise) in
@@ -62,8 +70,12 @@ public class GestureRecognitionModule: Module, AVCaptureVideoDataOutputSampleBuf
       return
     }
     
+    cameraDelegate.onFrame = { [weak self] sampleBuffer in
+      self?.processFrame(sampleBuffer)
+    }
+    
     videoOutput = AVCaptureVideoDataOutput()
-    videoOutput?.setSampleBufferDelegate(self, queue: DispatchQueue(label: "gesture.camera"))
+    videoOutput?.setSampleBufferDelegate(cameraDelegate, queue: DispatchQueue(label: "gesture.camera"))
     
     captureSession?.addInput(input)
     if let output = videoOutput {
@@ -80,9 +92,8 @@ public class GestureRecognitionModule: Module, AVCaptureVideoDataOutputSampleBuf
     captureSession = nil
   }
   
-  public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+  private func processFrame(_ sampleBuffer: CMSampleBuffer) {
     guard isRunning else { return }
-    guard CMSampleBufferGetImageBuffer(sampleBuffer) != nil else { return }
     
     let landmarks = [Float](repeating: 0, count: inputSize)
     frameBuffer.append(landmarks)
