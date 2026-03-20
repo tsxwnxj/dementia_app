@@ -5,7 +5,6 @@ import MediaPipeTasksVision
 
 class CameraDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
   var onFrame: ((CMSampleBuffer) -> Void)?
-
   func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
     onFrame?(sampleBuffer)
   }
@@ -13,7 +12,6 @@ class CameraDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
 
 public class GestureRecognitionModule: Module {
   static weak var shared: GestureRecognitionModule?
-
   private var cameraDelegate = CameraDelegate()
   private var frameBuffer: [[Float]] = []
   private let sequenceLen = 30
@@ -22,6 +20,8 @@ public class GestureRecognitionModule: Module {
   private var mlModel: MLModel?
   private var handLandmarker: HandLandmarker?
   private var frameCount = 0
+  private var handDetectedCount = 0
+  private let confidenceThreshold: Float = 0.75
 
   private let labels = ["cross_fist", "finger_fold", "finger_wave", "fingertip_clap", "fist_open", "hand_shake"]
   private let labelsKo: [String: String] = [
@@ -35,7 +35,7 @@ public class GestureRecognitionModule: Module {
 
   public func definition() -> ModuleDefinition {
     Name("GestureRecognition")
-    Events("onGestureResult", "onError")
+    Events("onGestureResult", "onDebug", "onError")
 
     OnCreate {
       GestureRecognitionModule.shared = self
@@ -46,6 +46,7 @@ public class GestureRecognitionModule: Module {
       self.isRunning = true
       self.frameBuffer = []
       self.frameCount = 0
+      self.handDetectedCount = 0
       promise.resolve(true)
     }
 
@@ -71,7 +72,7 @@ public class GestureRecognitionModule: Module {
 
   private func setupHandLandmarker() {
     guard let modelPath = Bundle.main.path(forResource: "hand_landmarker", ofType: "task") else {
-      print("[GestureRecognition] ❌ hand_landmarker.task 없음")
+      DispatchQueue.main.async { self.sendEvent("onDebug", ["msg": "❌ hand_landmarker.task 없음"]) }
       return
     }
     do {
@@ -83,48 +84,47 @@ public class GestureRecognitionModule: Module {
       options.minTrackingConfidence = 0.5
       options.runningMode = .video
       handLandmarker = try HandLandmarker(options: options)
-      print("[GestureRecognition] ✅ HandLandmarker 초기화 완료")
+      DispatchQueue.main.async { self.sendEvent("onDebug", ["msg": "✅ HandLandmarker 초기화 완료"]) }
     } catch {
-      print("[GestureRecognition] ❌ HandLandmarker 초기화 실패:", error)
+      DispatchQueue.main.async { self.sendEvent("onDebug", ["msg": "❌ HandLandmarker 실패: \(error)"]) }
     }
   }
 
   private func loadCoreMLModel() throws {
     if let modelURL = Bundle.main.url(forResource: "gesture_final", withExtension: "mlmodelc") {
       mlModel = try MLModel(contentsOf: modelURL)
-      print("[GestureRecognition] ✅ CoreML 로드 완료 (mlmodelc)")
     } else if let modelURL = Bundle.main.url(forResource: "gesture_final", withExtension: "mlpackage") {
       let compiledURL = try MLModel.compileModel(at: modelURL)
       mlModel = try MLModel(contentsOf: compiledURL)
-      print("[GestureRecognition] ✅ CoreML 로드 완료 (mlpackage)")
     } else {
       throw NSError(domain: "GestureRecognition", code: 1, userInfo: [NSLocalizedDescriptionKey: "모델 파일을 찾을 수 없습니다"])
     }
   }
 
-  // 뷰에서 이미 만든 output에 delegate만 붙임
   func attachOutput(to session: AVCaptureSession, existingOutput: AVCaptureVideoDataOutput) {
     cameraDelegate.onFrame = { [weak self] sampleBuffer in
       self?.processFrame(sampleBuffer)
     }
     existingOutput.setSampleBufferDelegate(cameraDelegate, queue: DispatchQueue(label: "gesture.camera"))
-    print("[GestureRecognition] ✅ delegate 연결 완료")
+    DispatchQueue.main.async { self.sendEvent("onDebug", ["msg": "✅ delegate 연결 완료"]) }
   }
 
   private func processFrame(_ sampleBuffer: CMSampleBuffer) {
     guard isRunning else { return }
-
     frameCount += 1
+
     let timestampMs = Int(CMSampleBufferGetPresentationTimeStamp(sampleBuffer).seconds * 1000)
     var landmarks = [Float](repeating: 0, count: inputSize)
     var handDetected = false
 
-    if let landmarker = handLandmarker,
-       let mpImage = try? MPImage(sampleBuffer: sampleBuffer) {
-      if let result = try? landmarker.detect(videoFrame: mpImage, timestampInMilliseconds: timestampMs) {
+    if let landmarker = handLandmarker {
+      do {
+        let mpImage = try MPImage(sampleBuffer: sampleBuffer)
+        let result = try landmarker.detect(videoFrame: mpImage, timestampInMilliseconds: timestampMs)
         let multiHandLandmarks = result.landmarks
         if !multiHandLandmarks.isEmpty {
           handDetected = true
+          handDetectedCount += 1
           for (i, handLandmarks) in multiHandLandmarks.prefix(2).enumerated() {
             let offset = i * 63
             for (j, lm) in handLandmarks.enumerated() {
@@ -134,13 +134,20 @@ public class GestureRecognitionModule: Module {
             }
           }
         }
+        if frameCount % 30 == 0 {
+          DispatchQueue.main.async {
+            self.sendEvent("onDebug", ["msg": "frame:\(self.frameCount) hand:\(self.handDetectedCount) detected:\(handDetected)"])
+          }
+        }
+      } catch {
+        if frameCount % 30 == 0 {
+          DispatchQueue.main.async { self.sendEvent("onDebug", ["msg": "❌ MPImage 오류: \(error)"]) }
+        }
       }
     }
 
     frameBuffer.append(landmarks)
-    if frameBuffer.count > sequenceLen {
-      frameBuffer.removeFirst()
-    }
+    if frameBuffer.count > sequenceLen { frameBuffer.removeFirst() }
 
     if frameBuffer.count == sequenceLen {
       let handCount = frameBuffer.filter { $0.contains(where: { $0 != 0 }) }.count
@@ -149,17 +156,18 @@ public class GestureRecognitionModule: Module {
         predictGesture(handDetected: handDetected)
       } else {
         DispatchQueue.main.async {
-          self.sendEvent("onGestureResult", [
-            "gesture": "",
-            "gestureKo": "",
-            "score": 0,
-            "isCorrect": false,
-            "handDetected": false
-          ])
+          self.sendEvent("onGestureResult", ["gesture": "", "gestureKo": "", "score": 0, "isCorrect": false, "handDetected": false])
         }
       }
       frameBuffer = []
     }
+  }
+
+  private func softmax(_ logits: [Float]) -> [Float] {
+    let maxLogit = logits.max() ?? 0
+    let exps = logits.map { exp($0 - maxLogit) }
+    let sumExps = exps.reduce(0, +)
+    return exps.map { $0 / sumExps }
   }
 
   private func predictGesture(handDetected: Bool) {
@@ -177,30 +185,44 @@ public class GestureRecognitionModule: Module {
       let output = try model.prediction(from: input)
 
       if let outputArray = output.featureValue(for: "var_85")?.multiArrayValue {
-        var maxScore: Float = -Float.infinity
-        var maxIdx = 0
+        // logit 값 추출
+        var logits = [Float]()
         for i in 0..<labels.count {
-          let score = outputArray[i].floatValue
-          if score > maxScore {
-            maxScore = score
-            maxIdx = i
-          }
+          logits.append(outputArray[i].floatValue)
         }
-        let confidence = Int(min(max((maxScore + 3) / 6 * 100, 0), 100))
-        let gesture = labels[maxIdx]
-        let gestureKo = labelsKo[gesture] ?? gesture
+
+        // softmax로 확률 계산
+        let probs = softmax(logits)
+        let maxProb = probs.max() ?? 0
+        let maxIdx = probs.firstIndex(of: maxProb) ?? 0
+
         DispatchQueue.main.async {
-          self.sendEvent("onGestureResult", [
-            "gesture": gesture,
-            "gestureKo": gestureKo,
-            "score": confidence,
-            "isCorrect": confidence >= 70,
-            "handDetected": handDetected
-          ])
+          self.sendEvent("onDebug", ["msg": "probs: \(probs.map { String(format: "%.2f", $0) }.joined(separator: ","))"])
+        }
+
+        // confidence threshold 체크
+        if maxProb >= self.confidenceThreshold {
+          let confidence = Int(maxProb * 100)
+          let gesture = self.labels[maxIdx]
+          let gestureKo = self.labelsKo[gesture] ?? gesture
+          DispatchQueue.main.async {
+            self.sendEvent("onGestureResult", [
+              "gesture": gesture, "gestureKo": gestureKo,
+              "score": confidence, "isCorrect": true,
+              "handDetected": handDetected
+            ])
+          }
+        } else {
+          DispatchQueue.main.async {
+            self.sendEvent("onGestureResult", [
+              "gesture": "", "gestureKo": "", "score": 0,
+              "isCorrect": false, "handDetected": handDetected
+            ])
+          }
         }
       }
     } catch {
-      print("[GestureRecognition] ❌ 예측 오류:", error)
+      print("예측 오류:", error)
     }
   }
 }
