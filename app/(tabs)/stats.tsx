@@ -80,16 +80,16 @@ export default function StatsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFE', padding: 22, paddingTop: 64 },
-  title: { fontSize: 34, fontWeight: '700', color: '#212121', marginBottom: 24 },
+  container: { flex: 1, backgroundColor: '#C2E7BB', padding: 22, paddingTop: 64 },
+  title: { fontSize: 34, fontWeight: '700', color: '#212121', marginBottom: 24, textAlign: 'center' },
   summaryRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   summaryCard: { flex: 1, backgroundColor: '#fff', borderRadius: 20, padding: 18, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  summaryValue: { fontSize: 32, fontWeight: '700', color: '#4A90E2' },
+  summaryValue: { fontSize: 32, fontWeight: '700', color: '#4DA56F' },
   summaryLabel: { fontSize: 14, color: '#9E9E9E', marginTop: 6, textAlign: 'center' },
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   cardTitle: { fontSize: 20, fontWeight: '700', color: '#212121', marginBottom: 16 },
-  progressBar: { height: 14, backgroundColor: '#E3F2FD', borderRadius: 7, overflow: 'hidden', marginBottom: 10 },
-  progressFill: { height: '100%', backgroundColor: '#4A90E2', borderRadius: 7 },
+  progressBar: { height: 14, backgroundColor: '#E9F8E7', borderRadius: 7, overflow: 'hidden', marginBottom: 10 },
+  progressFill: { height: '100%', backgroundColor: '#58b84b', borderRadius: 7 },
   progressText: { fontSize: 16, color: '#9E9E9E', textAlign: 'right' },
   emptyText: { fontSize: 18, color: '#BDBDBD', textAlign: 'center', paddingVertical: 20 },
   sessionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: '#F0F0F0' },
