@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { requireNativeModule, requireNativeViewManager, EventEmitter } from 'expo-modules-core';
 import { useFocusEffect } from 'expo-router';
-import * as ScreenOrientation from 'expo-screen-orientation';
 
 const GestureRecognition = requireNativeModule('GestureRecognition');
 const GestureRecognitionView = requireNativeViewManager('GestureRecognition');
@@ -16,15 +15,10 @@ export default function SessionScreen() {
   useFocusEffect(
     useCallback(() => {
       setIsFocused(true);
-      // 운동 탭 진입 시 가로 모드
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-
       return () => {
         setIsFocused(false);
         setCurrentGesture('');
         setHandDetected(false);
-        // 운동 탭 떠날 시 세로 모드로 복귀
-        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       };
     }, [])
   );
@@ -49,6 +43,7 @@ export default function SessionScreen() {
     });
 
     const subscription = emitter.addListener('onGestureResult', (result: any) => {
+      console.log('[Session] 결과:', JSON.stringify(result));
       setCurrentGesture(result.gestureKo);
       setHandDetected(result.handDetected ?? false);
     });
@@ -80,8 +75,8 @@ export default function SessionScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   camera: { flex: 1 },
-  handRatioBar: { position: 'absolute', top: 30, left: 20 },
-  handRatioText: { fontSize: 18, fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10, overflow: 'hidden' },
-  gestureBox: { position: 'absolute', bottom: 30, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 16, paddingVertical: 20, paddingHorizontal: 24 },
-  gestureName: { color: '#00FF00', fontSize: 32, fontWeight: '700' },
+  handRatioBar: { position: 'absolute', top: 50, left: 20 },
+  handRatioText: { fontSize: 14, fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
+  gestureBox: { position: 'absolute', bottom: 40, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20 },
+  gestureName: { color: '#00FF00', fontSize: 24, fontWeight: '700' },
 });

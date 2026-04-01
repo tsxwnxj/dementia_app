@@ -17,12 +17,7 @@
       "bundleIdentifier": "com.junseojang.dementiaapp",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "손 협응 체조 동작 감지를 위해 카메라가 필요합니다.",
-        "UISupportedInterfaceOrientations": [
-          "UIInterfaceOrientationPortrait",
-          "UIInterfaceOrientationLandscapeLeft",
-          "UIInterfaceOrientationLandscapeRight"
-        ]
+        "NSCameraUsageDescription": "손 협응 체조 동작 감지를 위해 카메라가 필요합니다."
       }
     },
     "android": {
@@ -44,7 +39,6 @@
       "expo-secure-store",
       "expo-camera",
       "expo-notifications",
-      "expo-screen-orientation",
       "./plugins/withGestureModel"
     ],
     "assetBundlePatterns": [
