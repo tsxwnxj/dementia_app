@@ -8,6 +8,9 @@ export default function TabsLayout() {
         tabBarActiveTintColor: '#4A90E2',
         tabBarInactiveTintColor: '#9E9E9E',
         tabBarStyle: { backgroundColor: '#ffffff', borderTopWidth: 0.5, borderTopColor: '#E0E0E0' },
+        tabBarShowIcon: false,
+        tabBarLabelStyle: { fontSize: 17 },
+        tabBarIcon: () => null, 
       }}
     >
       <Tabs.Screen name="index" options={{ title: '홈' }} />

@@ -2,10 +2,15 @@ import { useEffect, useState } from 'react';
 import { Stack, router } from 'expo-router';
 import { onAuthChanged } from '../services/auth';
 import { User } from 'firebase/auth';
+import { setupNotifications } from './notifications';
 
 export default function RootLayout() {
   const [user, setUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
+    setupNotifications(); // 추가
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthChanged((u) => {
