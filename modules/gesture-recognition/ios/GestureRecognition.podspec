@@ -11,6 +11,8 @@ Pod::Spec.new do |s|
   s.dependency 'MediaPipeTasksVision'
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
+    'SWIFT_INCLUDE_PATHS' => '$(inherited) $(PODS_ROOT)/MediaPipeTasksVision/frameworks/MediaPipeTasksVision.framework/Headers',
+    'OTHER_SWIFT_FLAGS' => '$(inherited) -Xcc -fmodule-map-file=$(PODS_ROOT)/MediaPipeTasksVision/frameworks/MediaPipeTasksVision.framework/Headers/MediaPipeTasksVision.modulemap',
   }
   s.source_files = "**/*.{h,m,mm,swift,hpp,cpp}"
   s.resources = ["**/*.mlpackage", "**/*.task"]
