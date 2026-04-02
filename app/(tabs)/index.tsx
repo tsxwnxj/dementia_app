@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { getTodaySessionCount, getUserProgress } from '../../services/firestore';
-import { generateQuizData } from './quizGenerator';
+import { generateQuizData, Quiz } from './quizGenerator';
 
-const TIPS = [
+const TIPS: string[] = [
   "매일 새로운 것을 배우면 뇌 신경 연결이 강화됩니다.",
   "규칙적인 운동은 치매 위험을 30% 낮춥니다.",
   "충분한 수면은 뇌의 노폐물을 제거하는 데 도움이 됩니다.",
@@ -14,27 +14,27 @@ const TIPS = [
   "스트레스 관리는 뇌 건강에 매우 중요합니다.",
 ];
 
-const QUIZ_POOL = generateQuizData(300);
+const QUIZ_POOL: Quiz[] = generateQuizData(300);
 
-function getRandomQuiz(exclude) {
-  let q;
+function getRandomQuiz(excludeId: number): Quiz {
+  let q: Quiz;
   do {
     q = QUIZ_POOL[Math.floor(Math.random() * QUIZ_POOL.length)];
-  } while (QUIZ_POOL.length > 1 && q.id === exclude);
+  } while (QUIZ_POOL.length > 1 && q.id === excludeId);
   return q;
 }
 
 export default function HomeScreen() {
-  const [sessionCount, setSessionCount] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [todayTip, setTodayTip] = useState('');
+  const [sessionCount, setSessionCount] = useState<number>(0);
+  const [streak, setStreak] = useState<number>(0);
+  const [todayTip, setTodayTip] = useState<string>('');
 
-  const [quiz, setQuiz] = useState(() => {
+  const [quiz, setQuiz] = useState<Quiz>(() => {
     const dayOfYear = Math.floor(Date.now() / 86400000);
     return QUIZ_POOL[dayOfYear % QUIZ_POOL.length];
   });
-  const [selectedAnswer, setSelectedAnswer] = useState(null); // string | null
-  const [showResult, setShowResult] = useState(false);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [showResult, setShowResult] = useState<boolean>(false);
 
   useEffect(() => {
     const load = async () => {
@@ -54,12 +54,12 @@ export default function HomeScreen() {
   }, []);
 
   const getNewQuiz = useCallback(() => {
-    setQuiz((prev) => getRandomQuiz(prev.id));
+    setQuiz((prev: Quiz) => getRandomQuiz(prev.id));
     setSelectedAnswer(null);
     setShowResult(false);
   }, []);
 
-  const handleAnswer = useCallback((optionValue) => {
+  const handleAnswer = useCallback((optionValue: string) => {
     if (showResult) return;
     setSelectedAnswer(optionValue);
     setShowResult(true);
@@ -113,15 +113,17 @@ export default function HomeScreen() {
 
         <Text style={styles.quizQuestion}>{quiz.question}</Text>
 
-        {quiz.options.map((opt, idx) => {
-          const isSelected = selectedAnswer === opt;
+        {quiz.options.map((opt: string, idx: number) => {
           const isAnswerCorrect = opt === quiz.answer;
+          const isSelected = selectedAnswer === opt;
 
-          let optionStyle = styles.optionBtn;
-          if (showResult) {
-            if (isAnswerCorrect) optionStyle = [styles.optionBtn, styles.correct];
-            else if (isSelected) optionStyle = [styles.optionBtn, styles.wrong];
-          }
+          const optionStyle: ViewStyle = showResult
+            ? isAnswerCorrect
+              ? { ...styles.optionBtn, ...styles.correct }
+              : isSelected
+              ? { ...styles.optionBtn, ...styles.wrong }
+              : styles.optionBtn
+            : styles.optionBtn;
 
           return (
             <TouchableOpacity
