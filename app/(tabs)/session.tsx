@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { requireNativeModule, requireNativeViewManager, EventEmitter } from 'expo-modules-core';
+import { useFocusEffect, router } from 'expo-router';
 import { db, auth } from '../../services/firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { useFocusEffect, router } from 'expo-router';
+import { refreshNotifications } from '../notifications';
 
 const GestureRecognition = requireNativeModule('GestureRecognition');
 const GestureRecognitionView = requireNativeViewManager('GestureRecognition');
@@ -22,9 +23,9 @@ export default function SessionScreen() {
   const [currentGesture, setCurrentGesture] = useState('');
   const [handDetected, setHandDetected] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const [step, setStep] = useState(0); // 현재 몇 번째 동작인지
-  const [success, setSuccess] = useState(false); // 현재 동작 성공 여부
-  const [sessionDone, setSessionDone] = useState(false); // 전체 완료 여부
+  const [step, setStep] = useState(0);
+  const [success, setSuccess] = useState(false);
+  const [sessionDone, setSessionDone] = useState(false);
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useFocusEffect(
@@ -74,7 +75,6 @@ export default function SessionScreen() {
     };
   }, [isFocused]);
 
-  // 제스처 인식 시 정답 판단
   useEffect(() => {
     if (sessionDone || success) return;
     if (currentGesture === GESTURES[step].name && handDetected) {
@@ -86,14 +86,14 @@ export default function SessionScreen() {
           setStep((prev) => prev + 1);
           setSuccess(false);
         }
-      }, 2000); // 2초 유지
+      }, 2000);
     }
     return () => {
       if (successTimer.current) clearTimeout(successTimer.current);
     };
   }, [currentGesture, handDetected]);
 
-const handleComplete = async (): Promise<void> => {
+  const handleComplete = async (): Promise<void> => {
     setSessionDone(true);
     const uid = auth.currentUser?.uid;
     if (!uid) return;
@@ -101,6 +101,7 @@ const handleComplete = async (): Promise<void> => {
       await addDoc(collection(db, `users/${uid}/sessions`), {
         completedAt: Timestamp.now(),
       });
+      await refreshNotifications();
       Alert.alert('운동 완료! 🎉', '오늘도 수고하셨어요 😊', [
         {
           text: '확인',
