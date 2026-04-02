@@ -1,5 +1,5 @@
 PODS:
-  - EXApplication (55.0.9):
+  - EXApplication (55.0.10):
     - ExpoModulesCore
   - EXConstants (55.0.9):
     - ExpoModulesCore
@@ -235,11 +235,34 @@ PODS:
     - React-Core
     - React-runtimescheduler
     - ReactCommon
-  - ExpoNotifications (55.0.12):
+  - ExpoNotifications (55.0.14):
     - ExpoModulesCore
   - ExpoRouter (55.0.5):
     - ExpoModulesCore
     - RNScreens
+  - ExpoScreenOrientation (55.0.9):
+    - ExpoModulesCore
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - ExpoSecureStore (55.0.8):
     - ExpoModulesCore
   - ExpoSymbols (55.0.5):
@@ -2310,6 +2333,7 @@ DEPENDENCIES:
   - ExpoModulesJSI (from `../node_modules/expo-modules-core`)
   - ExpoNotifications (from `../node_modules/expo-notifications/ios`)
   - ExpoRouter (from `../node_modules/expo-router/ios`)
+  - ExpoScreenOrientation (from `../node_modules/expo-screen-orientation/ios`)
   - ExpoSecureStore (from `../node_modules/expo-secure-store/ios`)
   - ExpoSymbols (from `../node_modules/expo-symbols/ios`)
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
@@ -2456,6 +2480,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-notifications/ios"
   ExpoRouter:
     :path: "../node_modules/expo-router/ios"
+  ExpoScreenOrientation:
+    :path: "../node_modules/expo-screen-orientation/ios"
   ExpoSecureStore:
     :path: "../node_modules/expo-secure-store/ios"
   ExpoSymbols:
@@ -2627,7 +2653,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  EXApplication: 44f202420678bba77f603c373bd3fd033e6c21e9
+  EXApplication: 83fdeb8d9e911c28c9dda8c71ae7a697278ce810
   EXConstants: 898c24a310046c0e68335619d0f379099a52e199
   EXJSONUtils: 0080c14b673cfa9a6be5e3fe429768ffe3d42dfb
   EXManifests: 2b53302deb6d7275ae26005b8014f5a1aee42a0e
@@ -2648,8 +2674,9 @@ SPEC CHECKSUMS:
   ExpoLogBox: 89b634d5a8a64c4a6a7caad8f9985a28463c7002
   ExpoModulesCore: b40499585cec5bfd14d45ce04f0c42d3d2ec22bb
   ExpoModulesJSI: 46dab6c6d9e181bf94757367a0d569bfc7fffd99
-  ExpoNotifications: 35c1549deb8fb2cba86e6fda778d46d08c11ea25
+  ExpoNotifications: 0e3b12306933444ca6030782eaa0b1b015ee3b42
   ExpoRouter: 5b4f8428745799125d02d66896b7e6e680e077c6
+  ExpoScreenOrientation: 0dd289f8cee46e2617f0d2a5114bac36ca3c112a
   ExpoSecureStore: ebb13e5e590b1e62ec530bd0cfe1a3e7f1867e26
   ExpoSymbols: 3d67a96643245a5d933ce7fbf535f95eb541f617
   EXUpdatesInterface: d48f288b92900bd95a27c6cf92a7b9aff826d49a
