@@ -4,7 +4,6 @@ import { requireNativeModule, requireNativeViewManager, EventEmitter } from 'exp
 import { db, auth } from '../../services/firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { useFocusEffect, router } from 'expo-router';
-import * as ScreenOrientation from 'expo-screen-orientation';
 
 const GestureRecognition = requireNativeModule('GestureRecognition');
 const GestureRecognitionView = requireNativeViewManager('GestureRecognition');
@@ -31,8 +30,6 @@ export default function SessionScreen() {
   useFocusEffect(
     useCallback(() => {
       setIsFocused(true);
-      // 세션 탭 진입 시 가로 모드로 고정
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
       return () => {
         setIsFocused(false);
         setCurrentGesture('');
@@ -41,8 +38,6 @@ export default function SessionScreen() {
         setSuccess(false);
         setSessionDone(false);
         if (successTimer.current) clearTimeout(successTimer.current);
-        // 다른 탭으로 이탈 시 세로 모드로 복원
-        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
       };
     }, [])
   );
