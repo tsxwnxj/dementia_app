@@ -14,6 +14,7 @@ Pod::Spec.new do |s|
   s.dependency 'MediaPipeTasksVision'
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
+    'FRAMEWORK_SEARCH_PATHS' => '$(inherited) $(PODS_XCFRAMEWORKS_BUILD_DIR)/MediaPipeTasksVision $(PODS_XCFRAMEWORKS_BUILD_DIR)/MediaPipeTasksCommon',
   }
   s.source_files = "**/*.{h,m,mm,swift,hpp,cpp}"
   s.resources = ["**/*.mlpackage", "**/*.task"]

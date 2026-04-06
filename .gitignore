@@ -29,3 +29,5 @@ eas-build-local-nodejs/
 
 expo-env.d.ts
 # @end expo-cli.env
+
+.claude

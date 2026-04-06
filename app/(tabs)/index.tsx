@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { getTodaySessionCount, getUserProgress } from '../../services/firestore';
+import { generateQuizData, Quiz } from './quizGenerator';
 
-const TIPS = [
+const TIPS: string[] = [
   "매일 새로운 것을 배우면 뇌 신경 연결이 강화됩니다.",
   "규칙적인 운동은 치매 위험을 30% 낮춥니다.",
   "충분한 수면은 뇌의 노폐물을 제거하는 데 도움이 됩니다.",
@@ -13,21 +14,27 @@ const TIPS = [
   "스트레스 관리는 뇌 건강에 매우 중요합니다.",
 ];
 
-const QUIZZES = [
-  { question: "규칙적인 유산소 운동이 치매 예방에 도움이 되는 이유는?", options: ["근육 강화", "뇌 혈류 증가", "소화 개선", "시력 향상"], answer: 1, explanation: "유산소 운동은 뇌로 가는 혈류를 증가시키고 뇌세포를 보호하는 단백질 생성을 촉진합니다." },
-  { question: "치매 예방에 효과적인 식단은?", options: ["고지방 식단", "지중해식 식단", "탄수화물 위주 식단", "단백질 위주 식단"], answer: 1, explanation: "지중해식 식단은 올리브유, 생선, 채소, 견과류가 풍부해 뇌 건강에 매우 효과적입니다." },
-  { question: "수면 중 뇌에서 일어나는 중요한 활동은?", options: ["기억 강화와 노폐물 제거", "새로운 세포 생성", "산소 소비 증가", "신경 연결 차단"], answer: 0, explanation: "수면 중 뇌는 기억을 장기 저장하고 독소와 노폐물을 제거하는 중요한 과정을 수행합니다." },
-  { question: "다음 중 인지 기능 유지에 가장 도움이 되는 활동은?", options: ["TV 시청", "독서와 퍼즐", "과도한 낮잠", "스마트폰 게임"], answer: 1, explanation: "독서와 퍼즐은 뇌의 여러 영역을 동시에 활성화시켜 인지 기능 유지에 효과적입니다." },
-  { question: "손 협응 운동이 뇌 건강에 좋은 이유는?", options: ["근력 강화", "소뇌와 전두엽 동시 활성화", "심폐 기능 향상", "관절 유연성 증가"], answer: 1, explanation: "손의 정교한 움직임은 뇌의 여러 영역을 동시에 자극해 신경 연결을 강화합니다." },
-];
+const QUIZ_POOL: Quiz[] = generateQuizData(300);
+
+function getRandomQuiz(excludeId: number): Quiz {
+  let q: Quiz;
+  do {
+    q = QUIZ_POOL[Math.floor(Math.random() * QUIZ_POOL.length)];
+  } while (QUIZ_POOL.length > 1 && q.id === excludeId);
+  return q;
+}
 
 export default function HomeScreen() {
-  const [sessionCount, setSessionCount] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [todayTip, setTodayTip] = useState('');
-  const [quiz, setQuiz] = useState(QUIZZES[0]);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [showResult, setShowResult] = useState(false);
+  const [sessionCount, setSessionCount] = useState<number>(0);
+  const [streak, setStreak] = useState<number>(0);
+  const [todayTip, setTodayTip] = useState<string>('');
+
+  const [quiz, setQuiz] = useState<Quiz>(() => {
+    const dayOfYear = Math.floor(Date.now() / 86400000);
+    return QUIZ_POOL[dayOfYear % QUIZ_POOL.length];
+  });
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [showResult, setShowResult] = useState<boolean>(false);
 
   useEffect(() => {
     const load = async () => {
@@ -36,27 +43,29 @@ export default function HomeScreen() {
         const progress = await getUserProgress();
         setSessionCount(count);
         setStreak(progress.streak ?? 0);
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+      }
     };
     load();
+
     const dayOfYear = Math.floor(Date.now() / 86400000);
     setTodayTip(TIPS[dayOfYear % TIPS.length]);
-    setQuiz(QUIZZES[dayOfYear % QUIZZES.length]);
   }, []);
 
-  const getNewQuiz = () => {
-    const randomIdx = Math.floor(Math.random() * QUIZZES.length);
-    setQuiz(QUIZZES[randomIdx]);
+  const getNewQuiz = useCallback(() => {
+    setQuiz((prev: Quiz) => getRandomQuiz(prev.id));
     setSelectedAnswer(null);
     setShowResult(false);
-  };
+  }, []);
 
-  const handleAnswer = (idx: number) => {
+  const handleAnswer = useCallback((optionValue: string) => {
     if (showResult) return;
-    setSelectedAnswer(idx);
+    setSelectedAnswer(optionValue);
     setShowResult(true);
-  };
+  }, [showResult]);
 
+  const isCorrect = selectedAnswer === quiz.answer;
   const isDone = sessionCount >= 2;
 
   return (
@@ -75,7 +84,7 @@ export default function HomeScreen() {
         <Text style={styles.progressLabel}>오늘 손 협응 운동</Text>
         <Text style={styles.progressCount}>{sessionCount} / 2 회</Text>
         <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${(sessionCount / 2) * 100}%` }]} />
+          <View style={[styles.progressFill, { width: `${Math.min((sessionCount / 2) * 100, 100)}%` }]} />
         </View>
       </View>
 
@@ -101,25 +110,39 @@ export default function HomeScreen() {
             <Text style={styles.refreshBtn}>새 문제</Text>
           </TouchableOpacity>
         </View>
+
         <Text style={styles.quizQuestion}>{quiz.question}</Text>
-        {quiz.options.map((opt, idx) => (
-          <TouchableOpacity
-            key={idx}
-            style={[
-              styles.optionBtn,
-              selectedAnswer === idx && (idx === quiz.answer ? styles.correct : styles.wrong),
-              showResult && idx === quiz.answer && styles.correct,
-            ]}
-            onPress={() => handleAnswer(idx)}
-            disabled={showResult}
-          >
-            <Text style={styles.optionText}>{String.fromCharCode(9312 + idx)}  {opt}</Text>
-          </TouchableOpacity>
-        ))}
+
+        {quiz.options.map((opt: string, idx: number) => {
+          const isAnswerCorrect = opt === quiz.answer;
+          const isSelected = selectedAnswer === opt;
+
+          const optionStyle: ViewStyle = showResult
+            ? isAnswerCorrect
+              ? { ...styles.optionBtn, ...styles.correct }
+              : isSelected
+              ? { ...styles.optionBtn, ...styles.wrong }
+              : styles.optionBtn
+            : styles.optionBtn;
+
+          return (
+            <TouchableOpacity
+              key={`${quiz.id}-${idx}`}
+              style={optionStyle}
+              onPress={() => handleAnswer(opt)}
+              disabled={showResult}
+            >
+              <Text style={styles.optionText}>
+                {String.fromCharCode(9312 + idx)}  {opt}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+
         {showResult && (
           <View style={styles.explanationBox}>
             <Text style={styles.explanationText}>
-              {selectedAnswer === quiz.answer ? '✅ 정답입니다!' : '❌ 오답입니다.'}{'\n'}{quiz.explanation}
+              {isCorrect ? '✅ 정답입니다!' : `❌ 오답입니다. 정답: ${quiz.answer}`}
             </Text>
           </View>
         )}
@@ -136,7 +159,7 @@ const styles = StyleSheet.create({
   streakCount: { fontSize: 26, fontWeight: '700', color: '#E65100' },
   streakSub: { fontSize: 18, fontWeight: '600', color: '#FF6D00', marginTop: 2 },
   progressCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  progressLabel: { fontSize: 18, fontWeight:'700', color: '#000', marginBottom: 8 },
+  progressLabel: { fontSize: 18, fontWeight: '700', color: '#000', marginBottom: 8 },
   progressCount: { fontSize: 38, fontWeight: '700', color: '#4DA56F', marginBottom: 14 },
   progressBar: { height: 12, backgroundColor: '#E3F2FD', borderRadius: 6, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: '#4A90E2', borderRadius: 6 },

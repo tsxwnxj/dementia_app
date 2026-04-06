@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import AVFoundation
+import UIKit
 
 class GestureRecognitionView: ExpoView {
   private var previewLayer: AVCaptureVideoPreviewLayer?
@@ -9,6 +10,18 @@ class GestureRecognitionView: ExpoView {
     super.init(appContext: appContext)
     backgroundColor = .black
     setupCamera()
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(orientationDidChange),
+      name: UIDevice.orientationDidChangeNotification,
+      object: nil
+    )
+    UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+  }
+
+  deinit {
+    NotificationCenter.default.removeObserver(self)
+    UIDevice.current.endGeneratingDeviceOrientationNotifications()
   }
 
   private func setupCamera() {
@@ -43,13 +56,36 @@ class GestureRecognitionView: ExpoView {
       session.startRunning()
       DispatchQueue.main.async {
         GestureRecognitionModule.shared?.attachOutput(to: session, existingOutput: output)
+        self.updatePreviewOrientation()
         print("[GestureRecognitionView] ✅ 카메라 세션 시작")
       }
+    }
+  }
+
+  @objc private func orientationDidChange() {
+    DispatchQueue.main.async {
+      self.updatePreviewOrientation()
+    }
+  }
+
+  private func updatePreviewOrientation() {
+    guard let connection = previewLayer?.connection, connection.isVideoOrientationSupported else { return }
+    let deviceOrientation = UIDevice.current.orientation
+    switch deviceOrientation {
+    case .landscapeLeft:
+      connection.videoOrientation = .landscapeRight
+    case .landscapeRight:
+      connection.videoOrientation = .landscapeLeft
+    case .portraitUpsideDown:
+      connection.videoOrientation = .portraitUpsideDown
+    default:
+      connection.videoOrientation = .portrait
     }
   }
 
   override func layoutSubviews() {
     super.layoutSubviews()
     previewLayer?.frame = bounds
+    updatePreviewOrientation()
   }
 }
