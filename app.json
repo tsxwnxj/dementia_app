@@ -18,7 +18,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "손 협응 체조 동작 감지를 위해 카메라가 필요합니다."
-      }
+      },
+      "appleTeamId": "GKDZVMV574"
     },
     "android": {
       "package": "com.junseojang.dementiaapp",
@@ -27,7 +28,8 @@
         "backgroundColor": "#E6F4FE"
       },
       "permissions": [
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -39,7 +41,20 @@
       "expo-secure-store",
       "expo-camera",
       "expo-notifications",
-      "./plugins/withGestureModel"
+      "./plugins/withGestureModel",
+      "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.381761400205-es0vjv4cgnam2291628e57e25eg5tf7l"
+        }
+      ],
+      [
+        "@react-native-kakao/core",
+        {
+          "nativeAppKey": "e762d1d9bb4d6747b68bef981907a99a"
+        }
+      ]
     ],
     "assetBundlePatterns": [
       "assets/**"
