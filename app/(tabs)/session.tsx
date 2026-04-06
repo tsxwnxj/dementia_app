@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { requireNativeModule, requireNativeViewManager, EventEmitter } from 'expo-modules-core';
-import { useFocusEffect, router } from 'expo-router';
+import { useFocusEffect, router, useLocalSearchParams } from 'expo-router';
 import { db, auth } from '../../services/firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { refreshNotifications } from '../notifications';
+import { getTodaySessionCount, updateStreak } from '../../services/firestore';
 
 const GestureRecognition = requireNativeModule('GestureRecognition');
 const GestureRecognitionView = requireNativeViewManager('GestureRecognition');
@@ -20,6 +21,9 @@ const GESTURES = [
 ];
 
 export default function SessionScreen() {
+  const { isPractice } = useLocalSearchParams<{ isPractice?: string }>();
+  const [practiceMode, setPracticeMode] = useState(isPractice === 'true');
+
   const [currentGesture, setCurrentGesture] = useState('');
   const [handDetected, setHandDetected] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -31,6 +35,19 @@ export default function SessionScreen() {
   useFocusEffect(
     useCallback(() => {
       setIsFocused(true);
+
+      const checkCount = async () => {
+        try {
+          const count = await getTodaySessionCount();
+          if (count >= 2) {
+            setPracticeMode(true);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      checkCount();
+
       return () => {
         setIsFocused(false);
         setCurrentGesture('');
@@ -38,6 +55,7 @@ export default function SessionScreen() {
         setStep(0);
         setSuccess(false);
         setSessionDone(false);
+        setPracticeMode(isPractice === 'true');
         if (successTimer.current) clearTimeout(successTimer.current);
       };
     }, [])
@@ -76,7 +94,8 @@ export default function SessionScreen() {
   }, [isFocused]);
 
   useEffect(() => {
-    if (sessionDone || success) return;
+    if (sessionDone) return;
+
     if (currentGesture === GESTURES[step].name && handDetected) {
       setSuccess(true);
       successTimer.current = setTimeout(() => {
@@ -87,7 +106,11 @@ export default function SessionScreen() {
           setSuccess(false);
         }
       }, 2000);
+    } else {
+      setSuccess(false);
+      if (successTimer.current) clearTimeout(successTimer.current);
     }
+
     return () => {
       if (successTimer.current) clearTimeout(successTimer.current);
     };
@@ -97,12 +120,33 @@ export default function SessionScreen() {
     setSessionDone(true);
     const uid = auth.currentUser?.uid;
     if (!uid) return;
+
     try {
-      await addDoc(collection(db, `users/${uid}/sessions`), {
-        completedAt: Timestamp.now(),
-      });
-      await refreshNotifications();
-      Alert.alert('운동 완료! 🎉', '오늘도 수고하셨어요 😊', [
+      if (practiceMode) {
+        Alert.alert('연습 완료! 👏', '연습이 끝났어요. 기록은 저장되지 않아요 😊', [
+          {
+            text: '확인',
+            onPress: () => router.push('/(tabs)'),
+          },
+        ]);
+        return;
+      }
+
+      const count = await getTodaySessionCount();
+
+      if (count < 2) {
+        await addDoc(collection(db, `users/${uid}/sessions`), {
+          completedAt: Timestamp.now(),
+        });
+        await refreshNotifications();
+
+        if (count + 1 >= 2) {
+          await updateStreak();
+        }
+      }
+
+      const message = count + 1 >= 2 ? '오늘 목표 달성! 🎉' : '오늘도 수고하셨어요 😊';
+      Alert.alert('운동 완료!', message, [
         {
           text: '확인',
           onPress: () => router.push('/(tabs)/stats'),
@@ -126,6 +170,13 @@ export default function SessionScreen() {
   return (
     <View style={styles.container}>
       {isFocused && <GestureRecognitionView style={styles.camera} />}
+
+      {/* 연습 모드 표시 */}
+      {practiceMode && (
+        <View style={styles.practiceBadge}>
+          <Text style={styles.practiceBadgeText}>연습 모드 📝</Text>
+        </View>
+      )}
 
       {/* 손 감지 상태 */}
       <View style={styles.handRatioBar}>
@@ -168,11 +219,13 @@ export default function SessionScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   camera: { flex: 1 },
-  handRatioBar: { position: 'absolute', top: 50, left: 20 },
+  practiceBadge: { position: 'absolute', top: 50, left: '50%', transform: [{ translateX: -60 }], backgroundColor: 'rgba(255,165,0,0.8)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, zIndex: 10 },
+  practiceBadgeText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  handRatioBar: { position: 'absolute', top: 90, left: 20 },
   handRatioText: { fontSize: 14, fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
-  stepBar: { position: 'absolute', top: 50, right: 20 },
+  stepBar: { position: 'absolute', top: 90, right: 20 },
   stepText: { fontSize: 14, fontWeight: '600', color: '#fff', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  instructionBox: { position: 'absolute', top: 100, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20, alignItems: 'center' },
+  instructionBox: { position: 'absolute', top: 140, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20, alignItems: 'center' },
   instructionLabel: { color: '#9E9E9E', fontSize: 14, marginBottom: 6 },
   instructionName: { color: '#fff', fontSize: 26, fontWeight: '700' },
   successText: { color: '#4DA56F', fontSize: 18, fontWeight: '600', marginTop: 8 },

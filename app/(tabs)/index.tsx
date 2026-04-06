@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ViewStyle } from 'react-native';
-import { router } from 'expo-router';
-import { getTodaySessionCount, getUserProgress } from '../../services/firestore';
+import { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ViewStyle, Alert } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { getTodaySessionCount, getUserProgress, getLastSessionTime } from '../../services/firestore';
 import { generateQuizData, Quiz } from './quizGenerator';
 
 const TIPS: string[] = [
@@ -28,7 +28,6 @@ export default function HomeScreen() {
   const [sessionCount, setSessionCount] = useState<number>(0);
   const [streak, setStreak] = useState<number>(0);
   const [todayTip, setTodayTip] = useState<string>('');
-
   const [quiz, setQuiz] = useState<Quiz>(() => {
     const dayOfYear = Math.floor(Date.now() / 86400000);
     return QUIZ_POOL[dayOfYear % QUIZ_POOL.length];
@@ -36,22 +35,65 @@ export default function HomeScreen() {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState<boolean>(false);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const count = await getTodaySessionCount();
-        const progress = await getUserProgress();
-        setSessionCount(count);
-        setStreak(progress.streak ?? 0);
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    load();
+  useFocusEffect(
+    useCallback(() => {
+      const load = async () => {
+        try {
+          const count = await getTodaySessionCount();
+          const progress = await getUserProgress();
+          setSessionCount(count);
+          setStreak(progress.streak ?? 0);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      load();
 
-    const dayOfYear = Math.floor(Date.now() / 86400000);
-    setTodayTip(TIPS[dayOfYear % TIPS.length]);
-  }, []);
+      const dayOfYear = Math.floor(Date.now() / 86400000);
+      setTodayTip(TIPS[dayOfYear % TIPS.length]);
+    }, [])
+  );
+
+  const handleStartExercise = async (): Promise<void> => {
+    try {
+      const lastSessionTime = await getLastSessionTime();
+
+      if (lastSessionTime) {
+        const sixHoursLater = new Date(lastSessionTime.getTime() + 6 * 60 * 60 * 1000);
+        const now = new Date();
+
+        if (now < sixHoursLater) {
+          // 6시간이 안 지났으면
+          const hours = sixHoursLater.getHours();
+          const minutes = sixHoursLater.getMinutes().toString().padStart(2, '0');
+          const period = hours < 12 ? '오전' : '오후';
+          const displayHour = hours > 12 ? hours - 12 : hours;
+          const timeStr = `${period} ${displayHour}시 ${minutes}분`;
+
+          Alert.alert(
+            '잠깐만요! 🧠',
+            `${timeStr} 이후에 하면 뇌 건강에 더 효과적이에요!\n그래도 지금 하시겠어요?`,
+            [
+              {
+                text: '나중에 하기',
+                style: 'cancel',
+              },
+              {
+                text: '연습하기',
+                onPress: () => router.push({ pathname: '/(tabs)/session', params: { isPractice: 'true' } }),
+              },
+            ]
+          );
+          return;
+        }
+      }
+
+      router.push('/(tabs)/session');
+    } catch (e) {
+      console.error(e);
+      router.push('/(tabs)/session');
+    }
+  };
 
   const getNewQuiz = useCallback(() => {
     setQuiz((prev: Quiz) => getRandomQuiz(prev.id));
@@ -90,7 +132,7 @@ export default function HomeScreen() {
 
       <TouchableOpacity
         style={[styles.startButton, isDone && styles.startButtonDone]}
-        onPress={() => router.push('/(tabs)/session')}
+        onPress={handleStartExercise}
         disabled={isDone}
       >
         <Text style={styles.startButtonText}>
