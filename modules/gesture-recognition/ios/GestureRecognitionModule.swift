@@ -33,9 +33,16 @@ public class GestureRecognitionModule: Module {
     "hand_shake": "손 털기"
   ]
 
+  // ── 데이터 수집 관련 ─────────────────────────────────────
+  private var isCollecting = false
+  private var collectingGesture = ""
+  private var collectBuffer: [[Float]] = []
+  private var savedCount = 0
+  private var targetCount = 50
+
   public func definition() -> ModuleDefinition {
     Name("GestureRecognition")
-    Events("onGestureResult", "onDebug", "onError")
+    Events("onGestureResult", "onDebug", "onError", "onCollectProgress", "onCollectComplete")
 
     OnCreate {
       GestureRecognitionModule.shared = self
@@ -63,6 +70,52 @@ public class GestureRecognitionModule: Module {
       } catch {
         promise.reject("MODEL_ERROR", error.localizedDescription)
       }
+    }
+
+    // ── 데이터 수집 시작 ──────────────────────────────────
+    AsyncFunction("startCollecting") { (gesture: String, count: Int, promise: Promise) in
+      self.isCollecting = true
+      self.collectingGesture = gesture
+      self.collectBuffer = []
+      self.savedCount = 0
+      self.targetCount = count
+      self.isRunning = true
+      self.frameBuffer = []
+      DispatchQueue.main.async {
+        self.sendEvent("onDebug", ["msg": "📹 수집 시작: \(gesture) (\(count)개 목표)"])
+      }
+      promise.resolve(true)
+    }
+
+    // ── 데이터 수집 중단 ──────────────────────────────────
+    AsyncFunction("stopCollecting") { (promise: Promise) in
+      self.isCollecting = false
+      self.collectingGesture = ""
+      self.collectBuffer = []
+      self.isRunning = false
+      promise.resolve(self.savedCount)
+    }
+
+    // ── 저장된 파일 목록 반환 ─────────────────────────────
+    Function("getSavedFiles") { () -> [String] in
+      let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+      let collectDir = docsDir.appendingPathComponent("gesture_data")
+      let files = try? FileManager.default.contentsOfDirectory(atPath: collectDir.path)
+      return files ?? []
+    }
+
+    // ── 파일 내용 읽기 ────────────────────────────────────
+    Function("readFile") { (filename: String) -> String in
+      let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+      let filePath = docsDir.appendingPathComponent("gesture_data/\(filename)")
+      return (try? String(contentsOf: filePath, encoding: .utf8)) ?? ""
+    }
+
+    // ── 파일 삭제 ─────────────────────────────────────────
+    Function("deleteFile") { (filename: String) -> Bool in
+      let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+      let filePath = docsDir.appendingPathComponent("gesture_data/\(filename)")
+      return (try? FileManager.default.removeItem(at: filePath)) != nil
     }
 
     View(GestureRecognitionView.self) {
@@ -134,18 +187,42 @@ public class GestureRecognitionModule: Module {
             }
           }
         }
-        if frameCount % 30 == 0 {
-          DispatchQueue.main.async {
-            self.sendEvent("onDebug", ["msg": "frame:\(self.frameCount) hand:\(self.handDetectedCount) detected:\(handDetected)"])
-          }
-        }
-      } catch {
-        if frameCount % 30 == 0 {
-          DispatchQueue.main.async { self.sendEvent("onDebug", ["msg": "❌ MPImage 오류: \(error)"]) }
-        }
-      }
+      } catch {}
     }
 
+    // ── 데이터 수집 모드 ──────────────────────────────────
+    if isCollecting {
+      collectBuffer.append(landmarks)
+
+      if collectBuffer.count == sequenceLen {
+        saveSequence(collectBuffer)
+        savedCount += 1
+
+        DispatchQueue.main.async {
+          self.sendEvent("onCollectProgress", [
+            "gesture": self.collectingGesture,
+            "saved": self.savedCount,
+            "target": self.targetCount
+          ])
+        }
+
+        collectBuffer = []
+
+        if savedCount >= targetCount {
+          isCollecting = false
+          isRunning = false
+          DispatchQueue.main.async {
+            self.sendEvent("onCollectComplete", [
+              "gesture": self.collectingGesture,
+              "total": self.savedCount
+            ])
+          }
+        }
+      }
+      return
+    }
+
+    // ── 일반 예측 모드 ────────────────────────────────────
     frameBuffer.append(landmarks)
     if frameBuffer.count > sequenceLen { frameBuffer.removeFirst() }
 
@@ -160,6 +237,23 @@ public class GestureRecognitionModule: Module {
         }
       }
       frameBuffer = []
+    }
+  }
+
+  // ── 시퀀스 JSON으로 저장 ───────────────────────────────
+  private func saveSequence(_ sequence: [[Float]]) {
+    let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    let collectDir = docsDir.appendingPathComponent("gesture_data/\(collectingGesture)")
+
+    try? FileManager.default.createDirectory(at: collectDir, withIntermediateDirectories: true)
+
+    let timestamp = Int(Date().timeIntervalSince1970 * 1000)
+    let filename = "\(collectingGesture)_\(timestamp)_\(savedCount).json"
+    let filePath = collectDir.appendingPathComponent(filename)
+
+    if let jsonData = try? JSONSerialization.data(withJSONObject: sequence),
+       let jsonStr = String(data: jsonData, encoding: .utf8) {
+      try? jsonStr.write(to: filePath, atomically: true, encoding: .utf8)
     }
   }
 
@@ -185,22 +279,15 @@ public class GestureRecognitionModule: Module {
       let output = try model.prediction(from: input)
 
       if let outputArray = output.featureValue(for: "var_85")?.multiArrayValue {
-        // logit 값 추출
         var logits = [Float]()
         for i in 0..<labels.count {
           logits.append(outputArray[i].floatValue)
         }
 
-        // softmax로 확률 계산
         let probs = softmax(logits)
         let maxProb = probs.max() ?? 0
         let maxIdx = probs.firstIndex(of: maxProb) ?? 0
 
-        DispatchQueue.main.async {
-          self.sendEvent("onDebug", ["msg": "probs: \(probs.map { String(format: "%.2f", $0) }.joined(separator: ","))"])
-        }
-
-        // confidence threshold 체크
         if maxProb >= self.confidenceThreshold {
           let confidence = Int(maxProb * 100)
           let gesture = self.labels[maxIdx]

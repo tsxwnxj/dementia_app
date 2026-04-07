@@ -4,6 +4,8 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>CFBundleAllowMixedLocalizations</key>
+	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -34,33 +36,15 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>exp+dementiaapp</string>
-			</array>
-		</dict>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>Google Sign-In</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
 				<string>com.googleusercontent.apps.381761400205-es0vjv4cgnam2291628e57e25eg5tf7l</string>
 			</array>
 		</dict>
 		<dict>
-			<key>CFBundleURLName</key>
-			<string>Kakao</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>kakaoe762d1d9bb4d6747b68bef981907a99a</string>
+				<string>exp+dementiaapp</string>
 			</array>
 		</dict>
-	</array>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>kakaokompassauth</string>
-		<string>storykompassauth</string>
-		<string>kakaolink</string>
-		<string>kakaoplus</string>
-		<string>kakaotalk</string>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
