@@ -43,7 +43,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>HandFit</Text>
-      <Text style={styles.subtitle}>매일 두 번, 손 건강 지키기</Text>
+      <Text style={styles.subtitle}>매일 두 번, 뇌 건강 지키기</Text>
 
       <View style={styles.buttonGroup}>
         {/* 카카오 로그인 */}
@@ -56,7 +56,6 @@ export default function LoginScreen() {
             <ActivityIndicator color="#3C1E1E" />
           ) : (
             <>
-              <Text style={styles.kakaoIcon}>💬</Text>
               <Text style={[styles.buttonText, styles.kakaoText]}>카카오로 로그인</Text>
             </>
           )}
@@ -72,7 +71,6 @@ export default function LoginScreen() {
             <ActivityIndicator color="#333" />
           ) : (
             <>
-              <Text style={styles.googleIcon}>G</Text>
               <Text style={[styles.buttonText, styles.googleText]}>Google로 로그인</Text>
             </>
           )}
@@ -89,7 +87,6 @@ export default function LoginScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <>
-                <Text style={styles.appleIcon}></Text>
                 <Text style={[styles.buttonText, styles.appleText]}>Apple로 로그인</Text>
               </>
             )}

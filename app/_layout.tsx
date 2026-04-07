@@ -3,13 +3,15 @@ import { Stack, router } from 'expo-router';
 import { onAuthChanged } from '../services/auth';
 import { User } from 'firebase/auth';
 import { setupNotifications } from './notifications';
+import { initializeKakaoSDK } from '@react-native-kakao/core';
 
 export default function RootLayout() {
   const [user, setUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    setupNotifications(); // 추가
+    initializeKakaoSDK('e762d1d9bb4d6747b68bef981907a99a');
+    setupNotifications();
   }, []);
 
   useEffect(() => {
@@ -29,10 +31,5 @@ export default function RootLayout() {
     }
   }, [user, initializing]);
 
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
-  );
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

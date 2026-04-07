@@ -11,7 +11,7 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { getKakaoProfile, login as kakaoLogin } from '@react-native-kakao/user';
+import { me as getKakaoMe, login as kakaoLogin } from '@react-native-kakao/user';
 
 // ─── Google 설정 ─────────────────────────────────────────────────────────────
 // Firebase Console → Authentication → Google 활성화 후
@@ -65,9 +65,9 @@ export const signInWithApple = async (): Promise<User> => {
 // 완전한 Firebase 연동이 필요하면 Firebase Functions으로 Custom Token 발급 필요
 export const signInWithKakao = async (): Promise<User> => {
   await kakaoLogin();
-  const profile = await getKakaoProfile();
-  const kakaoId = String(profile.id);
-  const kakaoNickname = profile.nickname ?? '';
+  const profile = await getKakaoMe();
+  const kakaoId = String(profile.id ?? "");
+  const kakaoNickname = profile.kakaoAccount?.profile?.nickname ?? "";
 
   const result = await signInAnonymously(auth);
   await SecureStore.setItemAsync('user_uid', result.user.uid);
