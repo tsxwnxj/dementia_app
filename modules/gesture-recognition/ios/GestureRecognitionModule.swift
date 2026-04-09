@@ -241,7 +241,7 @@ public class GestureRecognitionModule: Module {
   }
 
   // ── 시퀀스 JSON으로 저장 ───────────────────────────────
-  private func saveSequence(_ sequence: [[Float]]) {
+private func saveSequence(_ sequence: [[Float]]) {
     let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     let collectDir = docsDir.appendingPathComponent("gesture_data/\(collectingGesture)")
 
@@ -251,11 +251,25 @@ public class GestureRecognitionModule: Module {
     let filename = "\(collectingGesture)_\(timestamp)_\(savedCount).json"
     let filePath = collectDir.appendingPathComponent(filename)
 
+    // ← 로그 추가
+    DispatchQueue.main.async {
+        self.sendEvent("onDebug", ["msg": "💾 저장 시도: \(filePath.path)"])
+    }
+
     if let jsonData = try? JSONSerialization.data(withJSONObject: sequence),
        let jsonStr = String(data: jsonData, encoding: .utf8) {
-      try? jsonStr.write(to: filePath, atomically: true, encoding: .utf8)
+        do {
+            try jsonStr.write(to: filePath, atomically: true, encoding: .utf8)
+            DispatchQueue.main.async {
+                self.sendEvent("onDebug", ["msg": "✅ 저장 성공: \(filename)"])
+            }
+        } catch {
+            DispatchQueue.main.async {
+                self.sendEvent("onDebug", ["msg": "❌ 저장 실패: \(error)"])
+            }
+        }
     }
-  }
+}
 
   private func softmax(_ logits: [Float]) -> [Float] {
     let maxLogit = logits.max() ?? 0

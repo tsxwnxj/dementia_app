@@ -114,7 +114,12 @@ export default function CollectScreen() {
       [{ text: '확인' }]
     );
   };
-
+useEffect(() => {
+  const debugSub = emitter.addListener('onDebug', (result: any) => {
+    console.log('[DEBUG]', result.msg);
+  });
+  return () => debugSub.remove();
+}, []);
   return (
     <View style={styles.container}>
       {isFocused && <GestureRecognitionView style={styles.camera} />}
