@@ -273,12 +273,8 @@ export default function SessionScreen() {
 
   // 제스처 인식 성공 감지
   useEffect(() => {
-<<<<<<< HEAD
     if (sessionDone) return;
     if (successTimer.current) clearTimeout(successTimer.current);
-=======
-    if (sessionDone || success) return;
->>>>>>> 50a9a062076942c60a6b23c10f671f268a782483
 
     if (handDetected && currentGesture === GESTURES[step].name) {
       dispatch({ type: 'SUCCESS' });
