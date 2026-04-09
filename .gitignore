@@ -13,7 +13,7 @@ web-build/
 
 # Firebase
 google-services.json
-GoogleService-Info.plist
+# GoogleService-Info.plist은 EAS 빌드를 위해 커밋에 포함
 
 # OS
 .DS_Store
