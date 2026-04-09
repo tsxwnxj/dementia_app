@@ -13,10 +13,11 @@ export default function TabsLayout() {
         tabBarIcon: () => null,
       }}
     >
-      <Tabs.Screen name="index" options={{ title: '홈' }} />
+      <Tabs.Screen name="index"   options={{ title: '홈' }} />
       <Tabs.Screen name="session" options={{ title: '운동' }} />
-      <Tabs.Screen name="stats" options={{ title: '통계' }} />
+      <Tabs.Screen name="stats"   options={{ title: '통계' }} />
       <Tabs.Screen name="profile" options={{ title: '설정' }} />
+      <Tabs.Screen name="collect" options={{ title: '수집' }} />
     </Tabs>
   );
 }
