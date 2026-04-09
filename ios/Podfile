@@ -61,5 +61,30 @@ target 'dementiaapp' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
+
+    # MediaPipeTasksVision/Common xcframework 링커 플래그 패치
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        xcconfig_path = config.base_configuration_reference&.real_path
+        next unless xcconfig_path&.to_s&.include?('Pods-dementiaapp')
+
+        content = File.read(xcconfig_path)
+
+        # -l 플래그를 -framework 플래그로 변환
+        content = content
+          .gsub('-l"MediaPipeTasksCommon"', '-framework "MediaPipeTasksCommon"')
+          .gsub('-l"MediaPipeTasksVision"', '-framework "MediaPipeTasksVision"')
+
+        # FRAMEWORK_SEARCH_PATHS에 xcframework 빌드 경로 추가
+        if content.include?('FRAMEWORK_SEARCH_PATHS =') && !content.include?('PODS_XCFRAMEWORKS_BUILD_DIR)/MediaPipeTasksVision"')
+          content = content.gsub(
+            /^(FRAMEWORK_SEARCH_PATHS = .+)$/,
+            '\1 "$(PODS_XCFRAMEWORKS_BUILD_DIR)/MediaPipeTasksCommon" "$(PODS_XCFRAMEWORKS_BUILD_DIR)/MediaPipeTasksVision"'
+          )
+        end
+
+        File.write(xcconfig_path, content)
+      end
+    end
   end
 end

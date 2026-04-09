@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Alert, ScrollView, Share
+  Alert, ScrollView
 } from 'react-native';
 import { requireNativeModule, requireNativeViewManager, EventEmitter } from 'expo-modules-core';
 import { useFocusEffect } from 'expo-router';
@@ -19,12 +19,13 @@ const GESTURES = [
   { key: 'fingertip_clap', name: '손끝 박수' },
 ];
 
-const TARGET_COUNT = 50;  // 동작당 수집 개수
+type Gesture = typeof GESTURES[0];
+const TARGET_COUNT = 50;
 
 export default function CollectScreen() {
   const [isFocused, setIsFocused]           = useState(false);
   const [isCollecting, setIsCollecting]     = useState(false);
-  const [selectedGesture, setSelectedGesture] = useState<string | null>(null);
+  const [selectedGesture, setSelectedGesture] = useState<Gesture | null>(null);
   const [progress, setProgress]             = useState(0);
   const [countdown, setCountdown]           = useState(0);
   const [savedFiles, setSavedFiles]         = useState<string[]>([]);
@@ -69,7 +70,7 @@ export default function CollectScreen() {
     }
   };
 
-  const startCountdown = (gesture: string) => {
+  const startCountdown = (gesture: Gesture) => {
     setSelectedGesture(gesture);
     setCountdown(3);
     setProgress(0);
@@ -78,7 +79,7 @@ export default function CollectScreen() {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(countdownTimer.current!);
-          startCollecting(gesture);
+          startCollecting(gesture.key);
           return 0;
         }
         return prev - 1;
@@ -86,10 +87,10 @@ export default function CollectScreen() {
     }, 1000);
   };
 
-  const startCollecting = async (gesture: string) => {
+  const startCollecting = async (gestureKey: string) => {
     try {
       setIsCollecting(true);
-      await GestureRecognition.startCollecting(gesture, TARGET_COUNT);
+      await GestureRecognition.startCollecting(gestureKey, TARGET_COUNT);
     } catch (e) {
       console.error(e);
     }
@@ -122,14 +123,14 @@ export default function CollectScreen() {
       {countdown > 0 && (
         <View style={styles.countdownOverlay}>
           <Text style={styles.countdownText}>{countdown}</Text>
-          <Text style={styles.countdownSub}>{selectedGesture} 준비하세요!</Text>
+          <Text style={styles.countdownSub}>{selectedGesture?.name} 준비하세요!</Text>
         </View>
       )}
 
       {/* 수집 중 진행률 */}
       {isCollecting && (
         <View style={styles.progressBox}>
-          <Text style={styles.progressGesture}>{selectedGesture}</Text>
+          <Text style={styles.progressGesture}>{selectedGesture?.name}</Text>
           <Text style={styles.progressText}>{progress} / {TARGET_COUNT}</Text>
           <View style={styles.progressBarBg}>
             <View style={[styles.progressBarFill, { width: `${(progress / TARGET_COUNT) * 100}%` }]} />
@@ -145,16 +146,21 @@ export default function CollectScreen() {
         <View style={styles.gestureList}>
           <Text style={styles.title}>수집할 동작 선택</Text>
           <ScrollView>
-            {GESTURES.map(g => (
-              <TouchableOpacity
-                key={g.key}
-                style={styles.gestureButton}
-                onPress={() => startCountdown(g.key)}
-              >
-                <Text style={styles.gestureButtonText}>{g.name}</Text>
-                <Text style={styles.gestureButtonSub}>50개 수집</Text>
-              </TouchableOpacity>
-            ))}
+            {GESTURES.map(g => {
+              const isDone = savedFiles.includes(g.key);
+              return (
+                <TouchableOpacity
+                  key={g.key}
+                  style={styles.gestureButton}
+                  onPress={() => startCountdown(g)}
+                >
+                  <Text style={styles.gestureButtonText}>{g.name}</Text>
+                  <Text style={styles.gestureButtonSub}>
+                    {isDone ? '✅ 수집됨' : '50개 수집'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
 
           {/* 파일 전송 버튼 */}

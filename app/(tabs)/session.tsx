@@ -94,7 +94,7 @@ export default function SessionScreen() {
   }, [isFocused]);
 
   useEffect(() => {
-    if (sessionDone) return;
+    if (sessionDone || success) return;
 
     if (currentGesture === GESTURES[step].name && handDetected) {
       setSuccess(true);
@@ -106,9 +106,6 @@ export default function SessionScreen() {
           setSuccess(false);
         }
       }, 2000);
-    } else {
-      setSuccess(false);
-      if (successTimer.current) clearTimeout(successTimer.current);
     }
 
     return () => {
