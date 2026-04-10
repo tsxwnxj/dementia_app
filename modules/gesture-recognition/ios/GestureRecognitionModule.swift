@@ -292,7 +292,7 @@ private func saveSequence(_ sequence: [[Float]]) {
       let input = try MLDictionaryFeatureProvider(dictionary: ["input": inputArray])
       let output = try model.prediction(from: input)
 
-      if let outputArray = output.featureValue(for: "var_85")?.multiArrayValue {
+      if let outputArray = output.featureValue(for: "var_239")?.multiArrayValue {
         var logits = [Float]()
         for i in 0..<labels.count {
           logits.append(outputArray[i].floatValue)
