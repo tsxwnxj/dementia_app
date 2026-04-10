@@ -1,0 +1,29 @@
+diff --git a/node_modules/expo-camera/ios/Common/CameraPermissionsRequester.swift b/node_modules/expo-camera/ios/Common/CameraPermissionsRequester.swift
+index 9e77d85..d3b0958 100644
+--- a/node_modules/expo-camera/ios/Common/CameraPermissionsRequester.swift
++++ b/node_modules/expo-camera/ios/Common/CameraPermissionsRequester.swift
+@@ -19,10 +19,7 @@ extension BaseCameraRequester {
+     if description != nil {
+       systemStatus = AVCaptureDevice.authorizationStatus(for: mediaType)
+     } else {
+-      RCTFatal(RCTErrorWithMessage("""
+-      This app is missing \(key),
+-      so \(service) services will fail. Add this entry to your bundle's Info.plist.
+-      """))
++      fatalError("This app is missing \(key), so \(service) services will fail. Add this entry to your bundle's Info.plist.")
+       systemStatus = .denied
+     }
+ 
+@@ -87,11 +84,7 @@ class CameraPermissionRequester: NSObject, EXPermissionsRequester, BaseCameraReq
+     if let cameraUsuageDescription, let microphoneUsuageDescription {
+       systemStatus = AVCaptureDevice.authorizationStatus(for: mediaType)
+     } else {
+-      RCTFatal(RCTErrorWithMessage("""
+-      This app is missing either NSCameraUsageDescription or NSMicrophoneUsageDescription,
+-      so audio/video services will fail. Add one of these entries to
+-      your bundle's Info.plist
+-      """))
++      fatalError("This app is missing either NSCameraUsageDescription or NSMicrophoneUsageDescription, so audio/video services will fail. Add one of these entries to your bundle's Info.plist")
+       systemStatus = .denied
+     }
+ 
