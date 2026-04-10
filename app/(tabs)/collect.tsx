@@ -8,7 +8,7 @@ import { useFocusEffect } from 'expo-router';
 
 const GestureRecognition = requireNativeModule('GestureRecognition');
 const GestureRecognitionView = requireNativeViewManager('GestureRecognition');
-const emitter = new EventEmitter(GestureRecognition);
+const emitter = new EventEmitter(GestureRecognition) as any;
 
 const GESTURES = [
   { key: 'finger_wave',    name: '손가락 움직이기' },

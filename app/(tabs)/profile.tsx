@@ -17,7 +17,7 @@ export default function ProfileScreen() {
       <Text style={styles.title}>설정</Text>
       <View style={styles.card}>
         <Text style={styles.cardLabel}>계정</Text>
-        <Text style={styles.cardValue}>{user?.uid?.slice(0, 8) + '...' ?? '게스트'}</Text>
+        <Text style={styles.cardValue}>{user?.uid ? user.uid.slice(0, 8) + '...' : '게스트'}</Text>
       </View>
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
         <Text style={styles.signOutText}>로그아웃</Text>

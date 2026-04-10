@@ -9,7 +9,7 @@ import { getTodaySessionCount, updateStreak } from '../../services/firestore';
 
 const GestureRecognition = requireNativeModule('GestureRecognition');
 const GestureRecognitionView = requireNativeViewManager('GestureRecognition');
-const emitter = new EventEmitter(GestureRecognition);
+const emitter = new EventEmitter(GestureRecognition) as any;
 
 const GESTURES = [
   { name: '손가락 움직이기', key: 'finger_wave' },
@@ -178,7 +178,7 @@ export default function SessionScreen() {
   } = state;
 
   // handleComplete를 ref로 감싸서 항상 최신 함수 참조
-  const handleCompleteRef = useRef<() => Promise<void>>();
+  const handleCompleteRef = useRef<(() => Promise<void>) | undefined>(undefined);
   handleCompleteRef.current = async () => {
     const uid = auth.currentUser?.uid;
     const pm = isPractice === 'true';

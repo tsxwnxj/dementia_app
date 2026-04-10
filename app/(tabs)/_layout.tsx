@@ -8,7 +8,6 @@ export default function TabsLayout() {
         tabBarActiveTintColor: '#4DA56F',
         tabBarInactiveTintColor: '#000000',
         tabBarStyle: { backgroundColor: '#ffffff', borderTopWidth: 0.5 },
-        tabBarShowIcon: false,
         tabBarLabelStyle: { fontSize: 17 },
         tabBarIcon: () => null,
       }}

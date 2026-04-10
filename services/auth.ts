@@ -67,7 +67,7 @@ export const signInWithKakao = async (): Promise<User> => {
   await kakaoLogin();
   const profile = await getKakaoMe();
   const kakaoId = String(profile.id ?? "");
-  const kakaoNickname = profile.kakaoAccount?.profile?.nickname ?? "";
+  const kakaoNickname = (profile as any).kakaoAccount?.profile?.nickname ?? (profile as any).nickname ?? "";
 
   const result = await signInAnonymously(auth);
   await SecureStore.setItemAsync('user_uid', result.user.uid);
