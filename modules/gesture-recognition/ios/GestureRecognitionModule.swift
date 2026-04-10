@@ -139,7 +139,7 @@ public class GestureRecognitionModule: Module {
       let options = HandLandmarkerOptions()
       options.baseOptions.modelAssetPath = modelPath
       options.numHands = 2
-      options.minHandDetectionConfidence = 0.5
+      options.minHandDetectionConfidence = 0.7
       options.minHandPresenceConfidence = 0.5
       options.minTrackingConfidence = 0.5
       options.runningMode = .video
@@ -188,7 +188,7 @@ public class GestureRecognitionModule: Module {
           for (i, handLandmarks) in multiHandLandmarks.prefix(2).enumerated() {
             let offset = i * 63
             for (j, lm) in handLandmarks.enumerated() {
-              landmarks[offset + j * 3] = lm.x
+              landmarks[offset + j * 3]     = 1.0 - lm.x  // 학습 데이터와 동일하게 x 미러링
               landmarks[offset + j * 3 + 1] = lm.y
               landmarks[offset + j * 3 + 2] = lm.z
             }
