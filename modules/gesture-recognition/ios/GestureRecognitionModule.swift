@@ -1,3 +1,5 @@
+//GestureRecognitionModule.swift 
+
 import ExpoModulesCore
 import AVFoundation
 import CoreML
@@ -15,7 +17,7 @@ public class GestureRecognitionModule: Module {
   private var cameraDelegate = CameraDelegate()
   private var frameBuffer: [[Float]] = []
   private let sequenceLen = 30
-  private let inputSize = 126
+  private let inputSize = 252
   private var isRunning = false
   private var mlModel: MLModel?
   private var handLandmarker: HandLandmarker?
