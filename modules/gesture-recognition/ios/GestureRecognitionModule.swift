@@ -166,6 +166,15 @@ public class GestureRecognitionModule: Module {
       self?.processFrame(sampleBuffer)
     }
     existingOutput.setSampleBufferDelegate(cameraDelegate, queue: DispatchQueue(label: "gesture.camera"))
+    // 학습 데이터와 동일하게: portrait 방향 + 좌우 미러링
+    if let connection = existingOutput.connection(with: .video) {
+      if connection.isVideoOrientationSupported {
+        connection.videoOrientation = .portrait
+      }
+      if connection.isVideoMirroringSupported {
+        connection.isVideoMirrored = true
+      }
+    }
     DispatchQueue.main.async { self.sendEvent("onDebug", ["msg": "✅ delegate 연결 완료"]) }
   }
 
@@ -188,7 +197,7 @@ public class GestureRecognitionModule: Module {
           for (i, handLandmarks) in multiHandLandmarks.prefix(2).enumerated() {
             let offset = i * 63
             for (j, lm) in handLandmarks.enumerated() {
-              landmarks[offset + j * 3]     = 1.0 - lm.x  // 학습 데이터와 동일하게 x 미러링
+              landmarks[offset + j * 3]     = lm.x
               landmarks[offset + j * 3 + 1] = lm.y
               landmarks[offset + j * 3 + 2] = lm.z
             }
