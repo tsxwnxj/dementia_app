@@ -1,0 +1,22 @@
+diff --git a/node_modules/expo-screen-orientation/ios/ScreenOrientationRegistry.swift b/node_modules/expo-screen-orientation/ios/ScreenOrientationRegistry.swift
+index a1bd640..71882e1 100644
+--- a/node_modules/expo-screen-orientation/ios/ScreenOrientationRegistry.swift
++++ b/node_modules/expo-screen-orientation/ios/ScreenOrientationRegistry.swift
+@@ -48,7 +48,7 @@ public class ScreenOrientationRegistry: NSObject, UIApplicationDelegate {
+     super.init()
+ 
+     // This is most likely already executed on the main thread, but we need to be sure
+-    RCTExecuteOnMainQueue {
++    DispatchQueue.main.async {
+       UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+     }
+   }
+@@ -83,7 +83,7 @@ public class ScreenOrientationRegistry: NSObject, UIApplicationDelegate {
+       return
+     }
+ 
+-    RCTExecuteOnMainQueue { [weak self] in
++    DispatchQueue.main.async { [weak self] in
+       guard let self = self else {
+         return
+       }
