@@ -1,7 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { initializeAuth } from 'firebase/auth';
-// @ts-ignore — Firebase v12에서 getReactNativePersistence 경로 변경
-import { getReactNativePersistence } from '@firebase/auth/dist/cordova';
+// @ts-ignore — Firebase v12 React Native persistence path
+import { getReactNativePersistence } from '@firebase/auth/dist/rn';
 import { getFirestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
