@@ -17,13 +17,16 @@ public class GestureRecognitionModule: Module {
   private var cameraDelegate = CameraDelegate()
   private var frameBuffer: [[Float]] = []
   private let sequenceLen = 30
-  private let inputSize = 252
+  private let inputSize = 126
   private var isRunning = false
   private var mlModel: MLModel?
   private var handLandmarker: HandLandmarker?
   private var frameCount = 0
   private var handDetectedCount = 0
   private let confidenceThreshold: Float = 0.75
+  private var lastHandDetected = false
+  private var predictThrottle = 0
+  private let predictEvery = 5
 
   private let labels = ["cross_fist", "finger_fold", "finger_wave", "fingertip_clap", "fist_open", "hand_shake"]
   private let labelsKo: [String: String] = [
@@ -56,6 +59,8 @@ public class GestureRecognitionModule: Module {
       self.frameBuffer = []
       self.frameCount = 0
       self.handDetectedCount = 0
+      self.lastHandDetected = false
+      self.predictThrottle = 0
       promise.resolve(true)
     }
 
@@ -134,7 +139,7 @@ public class GestureRecognitionModule: Module {
       let options = HandLandmarkerOptions()
       options.baseOptions.modelAssetPath = modelPath
       options.numHands = 2
-      options.minHandDetectionConfidence = 0.7
+      options.minHandDetectionConfidence = 0.5
       options.minHandPresenceConfidence = 0.5
       options.minTrackingConfidence = 0.5
       options.runningMode = .video
@@ -192,6 +197,17 @@ public class GestureRecognitionModule: Module {
       } catch {}
     }
 
+    // 실시간 손 감지 상태 업데이트 — 30프레임 대기 없이 즉시 반영
+    if handDetected != lastHandDetected {
+      lastHandDetected = handDetected
+      DispatchQueue.main.async {
+        self.sendEvent("onGestureResult", [
+          "gesture": "", "gestureKo": "", "score": 0,
+          "isCorrect": false, "handDetected": handDetected
+        ])
+      }
+    }
+
     // ── 데이터 수집 모드 ──────────────────────────────────
     if isCollecting {
       collectBuffer.append(landmarks)
@@ -224,21 +240,24 @@ public class GestureRecognitionModule: Module {
       return
     }
 
-    // ── 일반 예측 모드 ────────────────────────────────────
+    // ── 일반 예측 모드 (슬라이딩 윈도우) ─────────────────
     frameBuffer.append(landmarks)
     if frameBuffer.count > sequenceLen { frameBuffer.removeFirst() }
 
     if frameBuffer.count == sequenceLen {
-      let handCount = frameBuffer.filter { $0.contains(where: { $0 != 0 }) }.count
-      let handRatio = Float(handCount) / Float(sequenceLen)
-      if handRatio >= 0.5 {
-        predictGesture(handDetected: handDetected)
-      } else {
-        DispatchQueue.main.async {
-          self.sendEvent("onGestureResult", ["gesture": "", "gestureKo": "", "score": 0, "isCorrect": false, "handDetected": false])
+      predictThrottle += 1
+      if predictThrottle >= predictEvery {
+        predictThrottle = 0
+        let handCount = frameBuffer.filter { $0.contains(where: { $0 != 0 }) }.count
+        let handRatio = Float(handCount) / Float(sequenceLen)
+        if handRatio >= 0.5 {
+          predictGesture(handDetected: true)
+        } else {
+          DispatchQueue.main.async {
+            self.sendEvent("onGestureResult", ["gesture": "", "gestureKo": "", "score": 0, "isCorrect": false, "handDetected": false])
+          }
         }
       }
-      frameBuffer = []
     }
   }
 
@@ -315,14 +334,8 @@ private func saveSequence(_ sequence: [[Float]]) {
               "handDetected": handDetected
             ])
           }
-        } else {
-          DispatchQueue.main.async {
-            self.sendEvent("onGestureResult", [
-              "gesture": "", "gestureKo": "", "score": 0,
-              "isCorrect": false, "handDetected": handDetected
-            ])
-          }
         }
+        // confidence < threshold일 때는 이벤트 미발송 — 손 감지 상태는 실시간 감지가 처리
       }
     } catch {
       print("예측 오류:", error)
