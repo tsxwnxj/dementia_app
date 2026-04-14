@@ -11,7 +11,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     initializeKakaoSDK('e762d1d9bb4d6747b68bef981907a99a');
-    setupNotifications();
   }, []);
 
   useEffect(() => {
@@ -25,6 +24,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (initializing) return;
     if (user) {
+      setupNotifications();
       router.replace('/(tabs)');
     } else {
       router.replace('/(auth)/login');
