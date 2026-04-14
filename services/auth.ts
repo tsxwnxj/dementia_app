@@ -3,6 +3,7 @@ import {
   signInAnonymously,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  updateProfile,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   User,
@@ -83,8 +84,10 @@ export const signInWithKakao = async (): Promise<User> => {
     }
   }
 
+  if (nickname && !result.user.displayName) {
+    await updateProfile(result.user, { displayName: nickname });
+  }
   await SecureStore.setItemAsync('user_uid', result.user.uid);
-  await SecureStore.setItemAsync('kakao_nickname', nickname);
   return result.user;
 };
 

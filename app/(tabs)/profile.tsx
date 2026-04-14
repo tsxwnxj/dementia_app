@@ -1,9 +1,17 @@
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { auth } from '../../services/firebase';
-import { signOut } from '../../services/auth';
+import { onAuthChanged, signOut } from '../../services/auth';
+import { User } from 'firebase/auth';
 
 export default function ProfileScreen() {
-  const user = auth.currentUser;
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsub = onAuthChanged(setUser);
+    return unsub;
+  }, []);
+
+  const displayName = user?.displayName || user?.email?.split('@')[0] || '게스트';
 
   const handleSignOut = () => {
     Alert.alert('로그아웃', '정말 로그아웃할까요?', [
@@ -17,7 +25,7 @@ export default function ProfileScreen() {
       <Text style={styles.title}>설정</Text>
       <View style={styles.card}>
         <Text style={styles.cardLabel}>계정</Text>
-        <Text style={styles.cardValue}>{user?.uid ? user.uid.slice(0, 8) + '...' : '게스트'}</Text>
+        <Text style={styles.cardValue}>{displayName}</Text>
       </View>
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
         <Text style={styles.signOutText}>로그아웃</Text>
