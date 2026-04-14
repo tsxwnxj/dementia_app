@@ -1,19 +1,19 @@
-import { auth, app } from './firebase';
+import { auth } from './firebase';
 import {
   signInAnonymously,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  signInWithCustomToken,
   User,
   GoogleAuthProvider,
   OAuthProvider,
   signInWithCredential,
 } from 'firebase/auth';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import * as SecureStore from 'expo-secure-store';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { login as kakaoLogin } from '@react-native-kakao/user';
+import { login as kakaoLogin, me as kakaoMe } from '@react-native-kakao/user';
 
 // ─── Google 설정 ─────────────────────────────────────────────────────────────
 // Firebase Console → Authentication → Google 활성화 후
@@ -63,38 +63,29 @@ export const signInWithApple = async (): Promise<User> => {
 
 // ─── 카카오 로그인 ────────────────────────────────────────────────────────────
 export const signInWithKakao = async (): Promise<User> => {
-  console.log('[Kakao] 1. kakaoLogin 시작');
-  const tokenInfo = await kakaoLogin();
-  const accessToken = tokenInfo.accessToken;
-  console.log('[Kakao] 2. accessToken 획득:', accessToken?.slice(0, 10) + '...');
+  await kakaoLogin();
+  const profile = await kakaoMe();
+  const kakaoId = String(profile.id ?? '');
+  const nickname = (profile as any).nickname ?? (profile as any).kakaoAccount?.profile?.nickname ?? '';
 
-  const fns = getFunctions(app, 'us-central1');
-  const createToken = httpsCallable<{ accessToken: string }, { customToken: string; uid: string; nickname: string }>(
-    fns, 'kakaoCreateCustomToken'
-  );
+  // 카카오 ID로 결정론적 이메일/패스워드 생성 → Cloud Functions 없이 동일 계정 보장
+  const email = `kakao_${kakaoId}@kakao.dementiaapp.com`;
+  const password = `kakao_${kakaoId}_hf2024!`;
 
-  console.log('[Kakao] 3. Cloud Function 호출 중...');
-  let data: { customToken: string; uid: string; nickname: string };
+  let result;
   try {
-    const res = await createToken({ accessToken });
-    data = res.data;
-    console.log('[Kakao] 4. customToken 획득, uid:', data.uid);
+    result = await signInWithEmailAndPassword(auth, email, password);
   } catch (e: any) {
-    console.error('[Kakao] Cloud Function 실패:', e.code, e.message, e.details);
-    throw e;
+    if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-email') {
+      result = await createUserWithEmailAndPassword(auth, email, password);
+    } else {
+      throw e;
+    }
   }
 
-  console.log('[Kakao] 5. signInWithCustomToken 시작');
-  try {
-    const result = await signInWithCustomToken(auth, data.customToken);
-    console.log('[Kakao] 6. 로그인 성공:', result.user.uid);
-    await SecureStore.setItemAsync('user_uid', result.user.uid);
-    await SecureStore.setItemAsync('kakao_nickname', data.nickname);
-    return result.user;
-  } catch (e: any) {
-    console.error('[Kakao] signInWithCustomToken 실패:', e.code, e.message);
-    throw e;
-  }
+  await SecureStore.setItemAsync('user_uid', result.user.uid);
+  await SecureStore.setItemAsync('kakao_nickname', nickname);
+  return result.user;
 };
 
 // ─── 공통 ──────────────────────────────────────────────────────────────────────
