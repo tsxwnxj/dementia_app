@@ -63,19 +63,38 @@ export const signInWithApple = async (): Promise<User> => {
 
 // ─── 카카오 로그인 ────────────────────────────────────────────────────────────
 export const signInWithKakao = async (): Promise<User> => {
+  console.log('[Kakao] 1. kakaoLogin 시작');
   const tokenInfo = await kakaoLogin();
   const accessToken = tokenInfo.accessToken;
+  console.log('[Kakao] 2. accessToken 획득:', accessToken?.slice(0, 10) + '...');
 
-  const functions = getFunctions(app, 'us-central1');
+  const fns = getFunctions(app, 'us-central1');
   const createToken = httpsCallable<{ accessToken: string }, { customToken: string; uid: string; nickname: string }>(
-    functions, 'kakaoCreateCustomToken'
+    fns, 'kakaoCreateCustomToken'
   );
-  const { data } = await createToken({ accessToken });
 
-  const result = await signInWithCustomToken(auth, data.customToken);
-  await SecureStore.setItemAsync('user_uid', result.user.uid);
-  await SecureStore.setItemAsync('kakao_nickname', data.nickname);
-  return result.user;
+  console.log('[Kakao] 3. Cloud Function 호출 중...');
+  let data: { customToken: string; uid: string; nickname: string };
+  try {
+    const res = await createToken({ accessToken });
+    data = res.data;
+    console.log('[Kakao] 4. customToken 획득, uid:', data.uid);
+  } catch (e: any) {
+    console.error('[Kakao] Cloud Function 실패:', e.code, e.message, e.details);
+    throw e;
+  }
+
+  console.log('[Kakao] 5. signInWithCustomToken 시작');
+  try {
+    const result = await signInWithCustomToken(auth, data.customToken);
+    console.log('[Kakao] 6. 로그인 성공:', result.user.uid);
+    await SecureStore.setItemAsync('user_uid', result.user.uid);
+    await SecureStore.setItemAsync('kakao_nickname', data.nickname);
+    return result.user;
+  } catch (e: any) {
+    console.error('[Kakao] signInWithCustomToken 실패:', e.code, e.message);
+    throw e;
+  }
 };
 
 // ─── 공통 ──────────────────────────────────────────────────────────────────────
