@@ -1,17 +1,19 @@
-import { auth } from './firebase';
+import { auth, app } from './firebase';
 import {
   signInAnonymously,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  signInWithCustomToken,
   User,
   GoogleAuthProvider,
   OAuthProvider,
   signInWithCredential,
 } from 'firebase/auth';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import * as SecureStore from 'expo-secure-store';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { me as getKakaoMe, login as kakaoLogin } from '@react-native-kakao/user';
+import { login as kakaoLogin } from '@react-native-kakao/user';
 
 // ─── Google 설정 ─────────────────────────────────────────────────────────────
 // Firebase Console → Authentication → Google 활성화 후
@@ -60,19 +62,19 @@ export const signInWithApple = async (): Promise<User> => {
 };
 
 // ─── 카카오 로그인 ────────────────────────────────────────────────────────────
-// 카카오 로그인은 Firebase Custom Token 없이는 Firebase Auth와 직접 연동 불가
-// 현재 구현: 카카오 인증 후 익명 Firebase 계정 생성 + 카카오 프로필을 SecureStore에 저장
-// 완전한 Firebase 연동이 필요하면 Firebase Functions으로 Custom Token 발급 필요
 export const signInWithKakao = async (): Promise<User> => {
-  await kakaoLogin();
-  const profile = await getKakaoMe();
-  const kakaoId = String(profile.id ?? "");
-  const kakaoNickname = (profile as any).kakaoAccount?.profile?.nickname ?? (profile as any).nickname ?? "";
+  const tokenInfo = await kakaoLogin();
+  const accessToken = tokenInfo.accessToken;
 
-  const result = await signInAnonymously(auth);
+  const functions = getFunctions(app, 'us-central1');
+  const createToken = httpsCallable<{ accessToken: string }, { customToken: string; uid: string; nickname: string }>(
+    functions, 'kakaoCreateCustomToken'
+  );
+  const { data } = await createToken({ accessToken });
+
+  const result = await signInWithCustomToken(auth, data.customToken);
   await SecureStore.setItemAsync('user_uid', result.user.uid);
-  await SecureStore.setItemAsync('kakao_id', kakaoId);
-  await SecureStore.setItemAsync('kakao_nickname', kakaoNickname);
+  await SecureStore.setItemAsync('kakao_nickname', data.nickname);
   return result.user;
 };
 
