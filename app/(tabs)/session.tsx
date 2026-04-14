@@ -4,7 +4,7 @@ import { requireNativeModule, requireNativeViewManager, EventEmitter } from 'exp
 import { useFocusEffect, router, useLocalSearchParams } from 'expo-router';
 import { db, auth } from '../../services/firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { refreshNotifications } from '../notifications';
+import { refreshNotifications } from '../../services/notifications';
 import { getTodaySessionCount, updateStreak } from '../../services/firestore';
 
 const GestureRecognition = requireNativeModule('GestureRecognition');

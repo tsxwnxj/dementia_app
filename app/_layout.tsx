@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Stack, router } from 'expo-router';
 import { onAuthChanged } from '../services/auth';
 import { User } from 'firebase/auth';
-import { setupNotifications } from './notifications';
+import { setupNotifications } from '../services/notifications';
 import { initializeKakaoSDK } from '@react-native-kakao/core';
 
 export default function RootLayout() {

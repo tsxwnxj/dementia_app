@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ViewStyle, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { getTodaySessionCount, getUserProgress, getLastSessionTime } from '../../services/firestore';
-import { generateQuizData, Quiz } from './quizGenerator';
+import { generateQuizData, Quiz } from '../../services/quizGenerator';
 
 const TIPS: string[] = [
   "매일 새로운 것을 배우면 뇌 신경 연결이 강화됩니다.",
@@ -43,8 +43,8 @@ export default function HomeScreen() {
           const progress = await getUserProgress();
           setSessionCount(count);
           setStreak(progress.streak ?? 0);
-        } catch (e) {
-          console.error(e);
+        } catch (e: any) {
+          if (e?.message !== '로그인이 필요합니다') console.error(e);
         }
       };
       load();
