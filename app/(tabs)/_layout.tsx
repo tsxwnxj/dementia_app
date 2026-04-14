@@ -13,7 +13,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="index"   options={{ title: '홈' }} />
-      <Tabs.Screen name="session" options={{ title: '운동' }} />
+      <Tabs.Screen name="session" options={{ href: null }} />
       <Tabs.Screen name="stats"   options={{ title: '통계' }} />
       <Tabs.Screen name="profile" options={{ title: '설정' }} />
     </Tabs>
