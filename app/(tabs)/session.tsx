@@ -1,11 +1,12 @@
-import { useReducer, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { useReducer, useEffect, useCallback, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated } from 'react-native';
 import { requireNativeModule, requireNativeViewManager, EventEmitter } from 'expo-modules-core';
 import { useFocusEffect, router, useLocalSearchParams } from 'expo-router';
 import { db, auth } from '../../services/firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { refreshNotifications } from '../../services/notifications';
-import { getTodaySessionCount, updateStreak } from '../../services/firestore';
+import { getTodaySessionCount, updateStreak, getLastSessionTime } from '../../services/firestore';
+import { useFontSize } from '../../context/FontSizeContext';
 
 const GestureRecognition = requireNativeModule('GestureRecognition');
 const GestureRecognitionView = requireNativeViewManager('GestureRecognition');
@@ -19,6 +20,9 @@ const GESTURES = [
   { name: '엇갈려 주먹 쥐고 펴기', key: 'cross_fist' },
   { name: '손끝 박수', key: 'fingertip_clap' },
 ];
+
+const STEP_TIME_LIMIT = 30;
+const SUCCESS_HOLD_TIME = 1500;
 
 type State = {
   step: number;
@@ -67,10 +71,8 @@ function reducer(state: State, action: Action): State {
             ? state.success
             : false,
       };
-
     case 'SUCCESS':
       return { ...state, success: true };
-
     case 'NEXT': {
       if (state.isRetryMode) {
         if (state.retrySteps.length > 0) {
@@ -99,17 +101,9 @@ function reducer(state: State, action: Action): State {
       }
       return { ...state, step: nextStep, success: false, lastPassedStep: null };
     }
-
     case 'PASS': {
-      if (state.lastPassedStep !== null && state.lastPassedStep === state.step - 1) {
-        return state;
-      }
-      if (state.passCount >= 2) {
-        return state;
-      }
       const newPassCount = state.passCount + 1;
       const newLastPassedStep = state.step;
-
       if (state.isRetryMode) {
         if (state.retrySteps.length > 0) {
           return {
@@ -123,7 +117,6 @@ function reducer(state: State, action: Action): State {
         }
         return { ...state, passCount: newPassCount, sessionDone: true };
       }
-
       const newRetrySteps = [...state.retrySteps, state.step];
       const nextStep = state.step + 1;
       if (nextStep >= GESTURES.length) {
@@ -146,14 +139,11 @@ function reducer(state: State, action: Action): State {
         success: false,
       };
     }
-
     case 'SET_PRACTICE_MODE':
       if (state.sessionDone) return state;
       return { ...state, practiceMode: true };
-
     case 'RESET':
       return initialState(action.practiceMode);
-
     default:
       return state;
   }
@@ -161,29 +151,101 @@ function reducer(state: State, action: Action): State {
 
 export default function SessionScreen() {
   const { isPractice } = useLocalSearchParams<{ isPractice?: string }>();
+  const { fontScale } = useFontSize();
   const [state, dispatch] = useReducer(reducer, initialState(isPractice === 'true'));
   const [isFocused, setIsFocused] = useStateSimple(false);
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stepTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoPassTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const progressAnim = useRef(new Animated.Value(1)).current;
+  const progressAnimation = useRef<Animated.CompositeAnimation | null>(null);
+  const remainingRatio = useRef(1);
+  const stepStartTime = useRef<number>(0);
 
-  // 항상 최신 state를 ref로 유지 — stale closure 완전 차단
   const stateRef = useRef(state);
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
   const {
-    step, success, sessionDone, passCount,
-    lastPassedStep, isRetryMode, practiceMode,
+    step, success, sessionDone,
+    isRetryMode, practiceMode,
     currentGesture, handDetected,
   } = state;
 
-  // handleComplete를 ref로 감싸서 항상 최신 함수 참조
+  const handleQuit = () => {
+    if (sessionDone) {
+      router.replace('/(tabs)');
+      return;
+    }
+    Alert.alert(
+      '운동을 중단할까요?',
+      '지금까지의 기록은 저장되지 않아요.',
+      [
+        { text: '계속하기', style: 'cancel' },
+        { text: '중단하기', style: 'destructive', onPress: () => router.replace('/(tabs)') },
+      ]
+    );
+  };
+
+  const resetStepTimer = useCallback(() => {
+    remainingRatio.current = 1;
+    progressAnim.setValue(1);
+
+    if (stepTimer.current) clearTimeout(stepTimer.current);
+    if (autoPassTimer.current) clearTimeout(autoPassTimer.current);
+    if (progressAnimation.current) progressAnimation.current.stop();
+
+    autoPassTimer.current = setTimeout(() => {
+      dispatch({ type: 'PASS' });
+    }, STEP_TIME_LIMIT * 1000);
+  }, []);
+
+  useEffect(() => {
+    if (sessionDone || !isFocused) return;
+    resetStepTimer();
+    return () => {
+      if (stepTimer.current) clearTimeout(stepTimer.current);
+      if (autoPassTimer.current) clearTimeout(autoPassTimer.current);
+      if (progressAnimation.current) progressAnimation.current.stop();
+    };
+  }, [step, isFocused, sessionDone]);
+
+  useEffect(() => {
+    if (sessionDone || success) return;
+
+    if (handDetected) {
+      if (progressAnimation.current) progressAnimation.current.stop();
+      const remainingDuration = remainingRatio.current * STEP_TIME_LIMIT * 1000;
+      stepStartTime.current = Date.now();
+
+      progressAnimation.current = Animated.timing(progressAnim, {
+        toValue: 0,
+        duration: remainingDuration,
+        useNativeDriver: false,
+      });
+      progressAnimation.current.start();
+    } else {
+      if (progressAnimation.current) progressAnimation.current.stop();
+      const elapsed = (Date.now() - stepStartTime.current) / 1000;
+      const elapsedRatio = elapsed / STEP_TIME_LIMIT;
+      remainingRatio.current = Math.max(0, remainingRatio.current - elapsedRatio);
+      progressAnim.setValue(remainingRatio.current);
+    }
+  }, [handDetected, sessionDone, success]);
+
+  useEffect(() => {
+    if (success) {
+      if (stepTimer.current) clearTimeout(stepTimer.current);
+      if (autoPassTimer.current) clearTimeout(autoPassTimer.current);
+      if (progressAnimation.current) progressAnimation.current.stop();
+    }
+  }, [success]);
+
   const handleCompleteRef = useRef<(() => Promise<void>) | undefined>(undefined);
   handleCompleteRef.current = async () => {
     const uid = auth.currentUser?.uid;
-    const pm = isPractice === 'true';
-
-    console.log('{handleComplete] pm:', pm, 'uid:', uid);
+    const pm = stateRef.current.practiceMode;
 
     try {
       if (pm || !uid) {
@@ -194,7 +256,21 @@ export default function SessionScreen() {
       }
 
       const count = await getTodaySessionCount();
+
       if (count < 2) {
+        if (count === 1) {
+          const lastTime = await getLastSessionTime();
+          if (lastTime) {
+            const sixHoursLater = new Date(lastTime.getTime() + 6 * 60 * 60 * 1000);
+            if (new Date() < sixHoursLater) {
+              Alert.alert('연습 완료! 👏', '연습이 끝났어요. 기록은 저장되지 않아요 😊', [
+                { text: '확인', onPress: () => router.replace('/(tabs)') },
+              ]);
+              return;
+            }
+          }
+        }
+
         await addDoc(collection(db, `users/${uid}/sessions`), {
           completedAt: Timestamp.now(),
         });
@@ -211,7 +287,6 @@ export default function SessionScreen() {
     }
   };
 
-  // sessionDone이 true가 되면 완료 처리
   useEffect(() => {
     if (!sessionDone) return;
     handleCompleteRef.current?.();
@@ -233,11 +308,11 @@ export default function SessionScreen() {
 
       return () => {
         setIsFocused(false);
-        // sessionDone 중이면 RESET 건너뜀 — navigation 타이밍 충돌 방지
-        if (!stateRef.current.sessionDone) {
-          dispatch({ type: 'RESET', practiceMode: isPractice === 'true' });
-        }
+        dispatch({ type: 'RESET', practiceMode: isPractice === 'true' });
         if (successTimer.current) clearTimeout(successTimer.current);
+        if (stepTimer.current) clearTimeout(stepTimer.current);
+        if (autoPassTimer.current) clearTimeout(autoPassTimer.current);
+        if (progressAnimation.current) progressAnimation.current.stop();
       };
     }, [])
   );
@@ -271,7 +346,6 @@ export default function SessionScreen() {
     };
   }, [isFocused]);
 
-  // 제스처 인식 성공 감지
   useEffect(() => {
     if (sessionDone) return;
     if (successTimer.current) clearTimeout(successTimer.current);
@@ -280,7 +354,7 @@ export default function SessionScreen() {
       dispatch({ type: 'SUCCESS' });
       successTimer.current = setTimeout(() => {
         dispatch({ type: 'NEXT' });
-      }, 2000);
+      }, SUCCESS_HOLD_TIME);
     }
 
     return () => {
@@ -289,72 +363,89 @@ export default function SessionScreen() {
   }, [currentGesture, handDetected, step, sessionDone]);
 
   const handlePass = (): void => {
-    if (lastPassedStep !== null && lastPassedStep === step - 1) {
-      Alert.alert('연속 패스 불가 🚫', '연달아 패스할 수 없어요! 이 동작을 먼저 해보세요 💪');
-      return;
-    }
-    if (passCount >= 2) {
-      Alert.alert('패스 불가 🚫', '패스는 총 2번만 사용할 수 있어요!');
-      return;
-    }
     if (successTimer.current) clearTimeout(successTimer.current);
+    if (stepTimer.current) clearTimeout(stepTimer.current);
+    if (autoPassTimer.current) clearTimeout(autoPassTimer.current);
+    if (progressAnimation.current) progressAnimation.current.stop();
     dispatch({ type: 'PASS' });
   };
+
+  const progressColor = progressAnim.interpolate({
+    inputRange: [0, 0.3, 1],
+    outputRange: ['#FF6B6B', '#FFA500', '#4DA56F'],
+  });
 
   return (
     <View style={styles.container}>
       {isFocused && <GestureRecognitionView style={styles.camera} />}
 
+      {/* 뒤로가기 버튼 */}
+      <TouchableOpacity style={styles.backButton} onPress={handleQuit}>
+        <Text style={[styles.backButtonText, { fontSize: 14 * fontScale }]}>{'<'} 뒤로</Text>
+      </TouchableOpacity>
+
       {practiceMode && (
         <View style={styles.practiceBadge}>
-          <Text style={styles.practiceBadgeText}>연습 모드 📝</Text>
+          <Text style={[styles.practiceBadgeText, { fontSize: 14 * fontScale }]}>연습 모드 📝</Text>
         </View>
       )}
 
       <View style={styles.handRatioBar}>
-        <Text style={[styles.handRatioText, { color: handDetected ? '#00FF00' : '#FF0000' }]}>
+        <Text style={[styles.handRatioText, { color: handDetected ? '#00FF00' : '#FF0000', fontSize: 14 * fontScale }]}>
           {handDetected ? '손 감지됨' : '손을 카메라에 보여주세요'}
         </Text>
       </View>
 
       <View style={styles.stepBar}>
-        <Text style={styles.stepText}>
+        <Text style={[styles.stepText, { fontSize: 14 * fontScale }]}>
           {isRetryMode ? '재도전 🔄 ' : ''}{step + 1} / {GESTURES.length}
         </Text>
       </View>
 
       {!sessionDone && handDetected && (
-        <View style={styles.instructionBox}>
-          <Text style={styles.instructionLabel}>
-            {isRetryMode ? '다시 도전해보세요 🔄' : '이렇게 해보세요'}
-          </Text>
-          <Text style={styles.instructionName}>{GESTURES[step].name}</Text>
-          {success && <Text style={styles.successText}>✅ 잘 하셨어요!</Text>}
-        </View>
+        <>
+          <View style={styles.progressBarContainer}>
+            <Animated.View
+              style={[
+                styles.progressBarFill,
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }),
+                  backgroundColor: progressColor,
+                },
+              ]}
+            />
+          </View>
+
+          <View style={styles.instructionBox}>
+            <Text style={[styles.instructionLabel, { fontSize: 14 * fontScale }]}>
+              {isRetryMode ? '다시 도전해보세요 🔄' : '이렇게 해보세요'}
+            </Text>
+            <Text style={[styles.instructionName, { fontSize: 26 * fontScale }]}>{GESTURES[step].name}</Text>
+            {success && <Text style={[styles.successText, { fontSize: 18 * fontScale }]}>✅ 잘 하셨어요!</Text>}
+          </View>
+        </>
       )}
 
       {currentGesture !== '' && (
         <View style={styles.gestureBox}>
-          <Text style={styles.gestureName}>{currentGesture}</Text>
+          <Text style={[styles.gestureName, { fontSize: 24 * fontScale }]}>{currentGesture}</Text>
         </View>
       )}
 
-      {!sessionDone && (
-        <TouchableOpacity
-          style={[
-            styles.passButton,
-            (passCount >= 2 || (lastPassedStep !== null && lastPassedStep === step - 1))
-              && styles.passButtonDisabled,
-          ]}
-          onPress={handlePass}
-        >
-          <Text style={styles.passButtonText}>
-            {isRetryMode
-              ? `재도전 중 🔄  패스 (${2 - passCount}회 남음)`
-              : `패스 (${2 - passCount}회 남음)`}
-          </Text>
-        </TouchableOpacity>
-      )}
+{!sessionDone && (
+  <>
+    <TouchableOpacity style={styles.passButton} onPress={handlePass}>
+      <Text style={[styles.passButtonText, { fontSize: 18 * fontScale }]}>패스</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.quitButton} onPress={handleQuit}>
+      <Text style={[styles.quitButtonText, { fontSize: 18 * fontScale }]}>운동 중단하기</Text>
+    </TouchableOpacity>
+  </>
+)}
     </View>
   );
 }
@@ -367,19 +458,25 @@ function useStateSimple(init: boolean) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   camera: { flex: 1 },
+  backButton: { position: 'absolute', top: 50, left: 20, zIndex: 30, backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  backButtonText: { color: '#fff', fontWeight: '600' },
   practiceBadge: { position: 'absolute', top: 50, left: '50%', transform: [{ translateX: -60 }], backgroundColor: 'rgba(255,165,0,0.8)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, zIndex: 10 },
-  practiceBadgeText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  practiceBadgeText: { color: '#fff', fontWeight: '700' },
   handRatioBar: { position: 'absolute', top: 90, left: 20 },
-  handRatioText: { fontSize: 14, fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
+  handRatioText: { fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
   stepBar: { position: 'absolute', top: 90, right: 20 },
-  stepText: { fontSize: 14, fontWeight: '600', color: '#fff', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  instructionBox: { position: 'absolute', top: 140, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20, alignItems: 'center' },
-  instructionLabel: { color: '#9E9E9E', fontSize: 14, marginBottom: 6 },
-  instructionName: { color: '#fff', fontSize: 26, fontWeight: '700' },
-  successText: { color: '#4DA56F', fontSize: 18, fontWeight: '600', marginTop: 8 },
-  gestureBox: { position: 'absolute', bottom: 120, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20 },
-  gestureName: { color: '#00FF00', fontSize: 24, fontWeight: '700' },
-  passButton: { position: 'absolute', bottom: 40, left: 20, right: 20, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 24, paddingVertical: 16, alignItems: 'center' },
+  stepText: { fontWeight: '600', color: '#fff', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  progressBarContainer: { position: 'absolute', top: 138, left: 20, right: 20, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', zIndex: 20, borderRadius: 2 },
+  progressBarFill: { height: '100%', borderRadius: 2 },
+  instructionBox: { position: 'absolute', top: 142, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20, alignItems: 'center' },
+  instructionLabel: { color: '#9E9E9E', marginBottom: 6 },
+  instructionName: { color: '#fff', fontWeight: '700' },
+  successText: { color: '#4DA56F', fontWeight: '600', marginTop: 8 },
+  gestureBox: { position: 'absolute', bottom: 180, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20 },
+  gestureName: { color: '#00FF00', fontWeight: '700' },
+  passButton: { position: 'absolute', bottom: 100, left: 20, right: 20, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 24, paddingVertical: 16, alignItems: 'center' },
   passButtonDisabled: { opacity: 0.4 },
-  passButtonText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  passButtonText: { color: '#fff', fontWeight: '700' },
+  quitButton: { position: 'absolute', bottom: 40, left: 20, right: 20, backgroundColor: 'rgba(255,59,48,0.3)', borderRadius: 24, paddingVertical: 16, alignItems: 'center' },
+  quitButtonText: { color: '#FF3B30', fontWeight: '700' },
 });
