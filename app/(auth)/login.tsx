@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFE',
     padding: 24,
   },
-  title: { fontSize: 40, fontWeight: '700', color: '#4A90E2', marginBottom: 8 },
-  subtitle: { fontSize: 16, color: '#757575', marginBottom: 56 },
+  title: { fontSize: 45, fontWeight: '700', color: '#4DA56F', marginBottom: 8 },
+  subtitle: { fontSize: 20, color: '#757575', marginBottom: 56 },
   buttonGroup: { width: '100%', gap: 12 },
   button: {
     flexDirection: 'row',
