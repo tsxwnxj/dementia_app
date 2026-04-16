@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ViewStyle, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { getTodaySessionCount, getUserProgress } from '../../services/firestore';
+import { getTodaySessionCount, getUserProgress, getLastSessionTime } from '../../services/firestore';
 import { generateQuizData, Quiz } from '../../services/quizGenerator';
-import YoutubeIframe from 'react-native-youtube-iframe';
 import { useFontSize } from '../../context/FontSizeContext';
 
 const TIPS: string[] = [
@@ -57,6 +56,40 @@ export default function HomeScreen() {
     }, [])
   );
 
+  const handleStartExercise = async (): Promise<void> => {
+    try {
+      const lastSessionTime = await getLastSessionTime();
+      if (lastSessionTime) {
+        const sixHoursLater = new Date(lastSessionTime.getTime() + 6 * 60 * 60 * 1000);
+        const now = new Date();
+        if (now < sixHoursLater && sessionCount === 1) {
+          const hours = sixHoursLater.getHours();
+          const minutes = sixHoursLater.getMinutes().toString().padStart(2, '0');
+          const period = hours < 12 ? '오전' : '오후';
+          const displayHour = hours > 12 ? hours - 12 : hours;
+          const timeStr = `${period} ${displayHour}시 ${minutes}분`;
+
+          Alert.alert(
+            '잠깐만요! 🧠',
+            `${timeStr} 이후에 하면 뇌 건강에 더 효과적이에요!`,
+            [
+              { text: '나중에 하기', style: 'cancel' },
+              {
+                text: '연습하기',
+                onPress: () => router.push({ pathname: '/(tabs)/session', params: { isPractice: 'true' } }),
+              },
+            ]
+          );
+          return;
+        }
+      }
+      router.push('/(tabs)/session');
+    } catch (e) {
+      console.error(e);
+      router.push('/(tabs)/session');
+    }
+  };
+
   const getNewQuiz = useCallback(() => {
     setQuiz((prev: Quiz) => getRandomQuiz(prev.id));
     setSelectedAnswer(null);
@@ -75,14 +108,7 @@ export default function HomeScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
-      {/* 튜토리얼 영상 */}
-      <View style={styles.videoContainer}>
-        <YoutubeIframe
-          height={200}
-          videoId="YWjnKtJGmpQ"
-          play={false}
-        />
-      </View>
+      <Text style={[styles.greeting, { fontSize: 34 * fontScale }]}>오늘의 두뇌 훈련</Text>
 
       <View style={styles.streakCard}>
         <Text style={[styles.streakEmoji, { fontSize: 40 * fontScale }]}>🔥</Text>
@@ -102,7 +128,7 @@ export default function HomeScreen() {
 
       <TouchableOpacity
         style={[styles.startButton, isDone && styles.startButtonDone]}
-        onPress={() => router.push('/(tabs)/session')}
+        onPress={handleStartExercise}
         disabled={isDone}
       >
         <Text style={[styles.startButtonText, { fontSize: 22 * fontScale }]}>
@@ -165,7 +191,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#C2E7BB', padding: 22, paddingTop: 64 },
-  videoContainer: { borderRadius: 20, overflow: 'hidden', marginBottom: 14 },
+  greeting: { fontWeight: '700', color: '#212121', marginBottom: 20, textAlign: 'center', letterSpacing: -1 },
   streakCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   streakEmoji: { marginRight: 14 },
   streakCount: { fontWeight: '700', color: '#E65100' },

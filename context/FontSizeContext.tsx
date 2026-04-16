@@ -17,8 +17,8 @@ const FontSizeContext = createContext<FontSizeContextType>({
 
 export const fontScales = {
   small: 0.85,
-  medium: 1,
-  large: 1.2,
+  medium: 1.1,
+  large: 1.4,
 };
 
 export function FontSizeProvider({ children }: { children: React.ReactNode }) {
