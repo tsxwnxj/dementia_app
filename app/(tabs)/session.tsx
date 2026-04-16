@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useCallback, useRef, useState } from 'react';
+import { useReducer, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated } from 'react-native';
 import { requireNativeModule, requireNativeViewManager, EventEmitter } from 'expo-modules-core';
 import { useFocusEffect, router, useLocalSearchParams } from 'expo-router';
@@ -377,75 +377,78 @@ export default function SessionScreen() {
 
   return (
     <View style={styles.container}>
-      {isFocused && <GestureRecognitionView style={styles.camera} />}
+      {/* 상단 연두색 배경 */}
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.backButton} onPress={handleQuit}>
+          <Text style={[styles.backButtonText, { fontSize: 14 * fontScale }]}>{'<'} 뒤로</Text>
+        </TouchableOpacity>
 
-      {/* 뒤로가기 버튼 */}
-      <TouchableOpacity style={styles.backButton} onPress={handleQuit}>
-        <Text style={[styles.backButtonText, { fontSize: 14 * fontScale }]}>{'<'} 뒤로</Text>
-      </TouchableOpacity>
-
-      {practiceMode && (
-        <View style={styles.practiceBadge}>
-          <Text style={[styles.practiceBadgeText, { fontSize: 14 * fontScale }]}>연습 모드 📝</Text>
+        <View style={styles.stepBar}>
+          <Text style={[styles.stepText, { fontSize: 14 * fontScale }]}>
+            {isRetryMode ? '재도전 🔄 ' : ''}{step + 1} / {GESTURES.length}
+          </Text>
         </View>
-      )}
-
-      <View style={styles.handRatioBar}>
-        <Text style={[styles.handRatioText, { color: handDetected ? '#00FF00' : '#FF0000', fontSize: 14 * fontScale }]}>
-          {handDetected ? '손 감지됨' : '손을 카메라에 보여주세요'}
-        </Text>
       </View>
 
-      <View style={styles.stepBar}>
-        <Text style={[styles.stepText, { fontSize: 14 * fontScale }]}>
-          {isRetryMode ? '재도전 🔄 ' : ''}{step + 1} / {GESTURES.length}
-        </Text>
-      </View>
+      {/* 카메라 */}
+      <View style={styles.cameraContainer}>
+        {isFocused && <GestureRecognitionView style={styles.camera} />}
 
-      {!sessionDone && handDetected && (
-        <>
-          <View style={styles.progressBarContainer}>
-            <Animated.View
-              style={[
-                styles.progressBarFill,
-                {
-                  width: progressAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }),
-                  backgroundColor: progressColor,
-                },
-              ]}
-            />
-          </View>
 
-          <View style={styles.instructionBox}>
-            <Text style={[styles.instructionLabel, { fontSize: 14 * fontScale }]}>
-              {isRetryMode ? '다시 도전해보세요 🔄' : '이렇게 해보세요'}
+        {/* 정중앙 손 감지 상태 */}
+        {!handDetected && (
+          <View style={styles.handRatioCenter}>
+            <Text style={[styles.handRatioText, { fontSize: 60* fontScale }]}>
+              {'손을 카메라에 \n보여주세요'}
             </Text>
-            <Text style={[styles.instructionName, { fontSize: 26 * fontScale }]}>{GESTURES[step].name}</Text>
-            {success && <Text style={[styles.successText, { fontSize: 18 * fontScale }]}>✅ 잘 하셨어요!</Text>}
           </View>
-        </>
-      )}
+        )}
 
-      {currentGesture !== '' && (
-        <View style={styles.gestureBox}>
-          <Text style={[styles.gestureName, { fontSize: 24 * fontScale }]}>{currentGesture}</Text>
+        {!sessionDone && handDetected && (
+          <>
+            <View style={styles.progressBarContainer}>
+              <Animated.View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0%', '100%'],
+                    }),
+                    backgroundColor: progressColor,
+                  },
+                ]}
+              />
+            </View>
+
+            <View style={styles.instructionBox}>
+              <Text style={[styles.instructionLabel, { fontSize: 14 * fontScale }]}>
+                {isRetryMode ? '다시 도전해보세요 🔄' : '이렇게 해보세요'}
+              </Text>
+              <Text style={[styles.instructionName, { fontSize: 26 * fontScale }]}>{GESTURES[step].name}</Text>
+              {success && <Text style={[styles.successText, { fontSize: 18 * fontScale }]}>✅ 잘 하셨어요!</Text>}
+            </View>
+          </>
+        )}
+
+        {currentGesture !== '' && (
+          <View style={styles.gestureBox}>
+            <Text style={[styles.gestureName, { fontSize: 24 * fontScale }]}>{currentGesture}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* 하단 연두색 배경 */}
+      {!sessionDone && (
+        <View style={styles.bottomBar}>
+          <TouchableOpacity style={styles.quitButton} onPress={handleQuit}>
+            <Text style={[styles.quitButtonText, { fontSize: 18 * fontScale }]}>중단하기</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.passButton} onPress={handlePass}>
+            <Text style={[styles.passButtonText, { fontSize: 18 * fontScale }]}>패스</Text>
+          </TouchableOpacity>
         </View>
       )}
-
-{!sessionDone && (
-  <>
-    <TouchableOpacity style={styles.passButton} onPress={handlePass}>
-      <Text style={[styles.passButtonText, { fontSize: 18 * fontScale }]}>패스</Text>
-    </TouchableOpacity>
-
-    <TouchableOpacity style={styles.quitButton} onPress={handleQuit}>
-      <Text style={[styles.quitButtonText, { fontSize: 18 * fontScale }]}>운동 중단하기</Text>
-    </TouchableOpacity>
-  </>
-)}
     </View>
   );
 }
@@ -457,26 +460,28 @@ function useStateSimple(init: boolean) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  camera: { flex: 1 },
-  backButton: { position: 'absolute', top: 50, left: 20, zIndex: 30, backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  backButtonText: { color: '#fff', fontWeight: '600' },
-  practiceBadge: { position: 'absolute', top: 50, left: '50%', transform: [{ translateX: -60 }], backgroundColor: 'rgba(255,165,0,0.8)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, zIndex: 10 },
+  topBar: { height: 100, backgroundColor: '#C2E7BB', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 40 },
+  backButton: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  backButtonText: { color: '#2D6A4F', fontWeight: '600' },
+  practiceBadge: { position: 'absolute', top: 12, left: '50%', transform: [{ translateX: -60 }], backgroundColor: 'rgba(255,165,0,0.8)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, zIndex: 10 },
   practiceBadgeText: { color: '#fff', fontWeight: '700' },
-  handRatioBar: { position: 'absolute', top: 90, left: 20 },
-  handRatioText: { fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
-  stepBar: { position: 'absolute', top: 90, right: 20 },
-  stepText: { fontWeight: '600', color: '#fff', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  progressBarContainer: { position: 'absolute', top: 138, left: 20, right: 20, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', zIndex: 20, borderRadius: 2 },
+  stepBar: {},
+  stepText: { fontWeight: '600', color: '#2D6A4F' },
+  cameraContainer: { flex: 1, position: 'relative' },
+  camera: { flex: 1 },
+  handRatioCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  handRatioText: { color: '#ffffffb6', fontWeight: '700', textAlign: 'center', backgroundColor: 'rgba(0,0,0,)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, overflow: 'hidden' },
+  progressBarContainer: { position: 'absolute', top: 54, left: 20, right: 20, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', zIndex: 20, borderRadius: 2 },
   progressBarFill: { height: '100%', borderRadius: 2 },
-  instructionBox: { position: 'absolute', top: 142, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20, alignItems: 'center' },
+  instructionBox: { position: 'absolute', top: 58, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20, alignItems: 'center' },
   instructionLabel: { color: '#9E9E9E', marginBottom: 6 },
   instructionName: { color: '#fff', fontWeight: '700' },
   successText: { color: '#4DA56F', fontWeight: '600', marginTop: 8 },
-  gestureBox: { position: 'absolute', bottom: 180, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20 },
+  gestureBox: { position: 'absolute', bottom: 20, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 20 },
   gestureName: { color: '#00FF00', fontWeight: '700' },
-  passButton: { position: 'absolute', bottom: 100, left: 20, right: 20, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 24, paddingVertical: 16, alignItems: 'center' },
-  passButtonDisabled: { opacity: 0.4 },
-  passButtonText: { color: '#fff', fontWeight: '700' },
-  quitButton: { position: 'absolute', bottom: 40, left: 20, right: 20, backgroundColor: 'rgba(255,59,48,0.3)', borderRadius: 24, paddingVertical: 16, alignItems: 'center' },
-  quitButtonText: { color: '#FF3B30', fontWeight: '700' },
+  bottomBar: { height: 100, backgroundColor: '#C2E7BB', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, gap: 12 },
+  quitButton: { flex: 1, backgroundColor: '#FF3B30', borderRadius: 24, paddingVertical: 14, alignItems: 'center' },
+  quitButtonText: { color: '#FFFFFF', fontWeight: '700' },
+  passButton: { flex: 1, backgroundColor: '#2D6A4F', borderRadius: 24, paddingVertical: 14, alignItems: 'center' },
+  passButtonText: { color: '#FFFFFF', fontWeight: '700' },
 });
