@@ -43,7 +43,7 @@ export default function ProfileScreen() {
               <Text style={[
                 styles.sizeButtonText,
                 fontSize === size && styles.sizeButtonTextActive,
-                { fontSize: size === 'small' ? 12 : size === 'medium' ? 16 : 20 }
+                { fontSize: size === 'small' ? 20 : size === 'medium' ? 20 : 20 }
               ]}>
                 {size === 'small' ? '작게' : size === 'medium' ? '보통' : '크게'}
               </Text>

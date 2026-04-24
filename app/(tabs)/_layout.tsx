@@ -12,9 +12,11 @@ export default function TabsLayout() {
         tabBarIcon: () => null,
       }}
     >
-      <Tabs.Screen name="index"   options={{ title: '홈' }} />
+      <Tabs.Screen name="index" options={{ title: '홈' }} />
       <Tabs.Screen name="session" options={{ href: null }} />
-      <Tabs.Screen name="stats"   options={{ title: '통계' }} />
+      <Tabs.Screen name="quiz" options={{ href: null }} />
+      <Tabs.Screen name="minigame" options={{ href: null }} />
+      <Tabs.Screen name="stats" options={{ title: '통계' }} />
       <Tabs.Screen name="profile" options={{ title: '설정' }} />
     </Tabs>
   );

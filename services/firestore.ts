@@ -80,7 +80,6 @@ export const updateStreak = async (): Promise<void> => {
     if (lastDate) {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-
       const isYesterday = lastDate >= yesterday && lastDate < today;
       const isToday = lastDate >= today;
 
@@ -107,4 +106,87 @@ export const updateStreak = async (): Promise<void> => {
       badges: [],
     });
   }
+};
+
+// 퀴즈 완료 저장
+export const saveQuizSession = async (): Promise<number> => {
+  const uid = getUid();
+  await addDoc(collection(db, `users/${uid}/quizSessions`), {
+    completedAt: serverTimestamp(),
+  });
+  return await getTodayQuizCount();
+};
+
+// 오늘 퀴즈 완료 횟수
+export const getTodayQuizCount = async (): Promise<number> => {
+  const uid = getUid();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const q = query(
+    collection(db, `users/${uid}/quizSessions`),
+    where('completedAt', '>=', Timestamp.fromDate(today))
+  );
+  const snapshot = await getDocs(q);
+  return Math.min(snapshot.size, 2);
+};
+
+// 말하기 완료 저장
+export const saveSpeakSession = async (): Promise<number> => {
+  const uid = getUid();
+  await addDoc(collection(db, `users/${uid}/speakSessions`), {
+    completedAt: serverTimestamp(),
+  });
+  return await getTodaySpeakCount();
+};
+
+// 오늘 말하기 완료 횟수
+export const getTodaySpeakCount = async (): Promise<number> => {
+  const uid = getUid();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const q = query(
+    collection(db, `users/${uid}/speakSessions`),
+    where('completedAt', '>=', Timestamp.fromDate(today))
+  );
+  const snapshot = await getDocs(q);
+  return Math.min(snapshot.size, 2);
+};
+
+// 날짜별 퀴즈 완료 횟수 (통계용)
+export const getQuizCountByDate = async (date: Date): Promise<number> => {
+  const uid = getUid();
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 999);
+  const q = query(
+    collection(db, `users/${uid}/quizSessions`),
+    where('completedAt', '>=', Timestamp.fromDate(start)),
+    where('completedAt', '<=', Timestamp.fromDate(end))
+  );
+  const snapshot = await getDocs(q);
+  return Math.min(snapshot.size, 2);
+};
+
+// 날짜별 말하기 완료 횟수 (통계용)
+export const getSpeakCountByDate = async (date: Date): Promise<number> => {
+  const uid = getUid();
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 999);
+  const q = query(
+    collection(db, `users/${uid}/speakSessions`),
+    where('completedAt', '>=', Timestamp.fromDate(start)),
+    where('completedAt', '<=', Timestamp.fromDate(end))
+  );
+  const snapshot = await getDocs(q);
+  return Math.min(snapshot.size, 2);
+};
+
+// 퀴즈 한 번 완료 시 오늘 퀴즈 퀘스트 완료 처리
+export const completeQuizToday = async (): Promise<void> => {
+  const uid = getUid();
+  await addDoc(collection(db, `users/${uid}/quizSessions`), { completedAt: Timestamp.now() });
+  await addDoc(collection(db, `users/${uid}/quizSessions`), { completedAt: Timestamp.now() });
 };

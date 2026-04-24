@@ -64,7 +64,7 @@ export async function refreshNotifications(): Promise<void> {
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: 22,
+        hour: 18,
         minute: 0,
       },
     });
