@@ -13,7 +13,7 @@ type DayStatus = 'complete' | 'partial' | 'none' | 'future';
 interface RecordItem {
   date: string;
   time: string;
-  type: 'session' | 'quiz' | 'speak';
+  type: 'session' | 'speak';
   count: number;
   max: number;
 }
@@ -27,29 +27,26 @@ export default function StatsScreen() {
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [recentRecords, setRecentRecords] = useState<RecordItem[]>([]);
 
-  const checkDayComplete = async (uid: string, date: Date): Promise<{ status: DayStatus; sessionCount: number; quizCount: number; speakCount: number }> => {
+  const checkDayComplete = async (uid: string, date: Date): Promise<{ status: DayStatus; sessionCount: number; speakCount: number }> => {
     const start = new Date(date);
     start.setHours(0, 0, 0, 0);
     const end = new Date(date);
     end.setHours(23, 59, 59, 999);
 
-    const [sessionSnap, quizSnap, speakSnap] = await Promise.all([
+    const [sessionSnap, speakSnap] = await Promise.all([
       getDocs(query(collection(db, `users/${uid}/sessions`), where('completedAt', '>=', Timestamp.fromDate(start)), where('completedAt', '<=', Timestamp.fromDate(end)))),
-      getDocs(query(collection(db, `users/${uid}/quizSessions`), where('completedAt', '>=', Timestamp.fromDate(start)), where('completedAt', '<=', Timestamp.fromDate(end)))),
       getDocs(query(collection(db, `users/${uid}/speakSessions`), where('completedAt', '>=', Timestamp.fromDate(start)), where('completedAt', '<=', Timestamp.fromDate(end)))),
     ]);
 
     const sessionCount = Math.min(sessionSnap.size, 2);
-    const quizCount = Math.min(quizSnap.size, 1);
     const speakCount = Math.min(speakSnap.size, 2);
 
-    const allComplete = sessionCount >= 2 && quizCount >= 1 && speakCount >= 2;
-    const anyDone = sessionCount > 0 || quizCount > 0 || speakCount > 0;
+    const allComplete = sessionCount >= 2 && speakCount >= 2;
+    const anyDone = sessionCount > 0 || speakCount > 0;
 
     return {
       status: allComplete ? 'complete' : anyDone ? 'partial' : 'none',
       sessionCount,
-      quizCount,
       speakCount,
     };
   };
@@ -73,15 +70,9 @@ export default function StatsScreen() {
       nextDate.setDate(nextDate.getDate() + 1);
       const dateStr = date.toLocaleDateString('ko-KR');
 
-      const [sessionSnap, quizSnap, speakSnap] = await Promise.all([
+      const [sessionSnap, speakSnap] = await Promise.all([
         getDocs(query(
           collection(db, `users/${uid}/sessions`),
-          where('completedAt', '>=', Timestamp.fromDate(date)),
-          where('completedAt', '<', Timestamp.fromDate(nextDate)),
-          orderBy('completedAt', 'asc')
-        )),
-        getDocs(query(
-          collection(db, `users/${uid}/quizSessions`),
           where('completedAt', '>=', Timestamp.fromDate(date)),
           where('completedAt', '<', Timestamp.fromDate(nextDate)),
           orderBy('completedAt', 'asc')
@@ -94,15 +85,11 @@ export default function StatsScreen() {
         )),
       ]);
 
-      const items: { time: number; timeStr: string; type: 'session' | 'quiz' | 'speak' }[] = [];
+      const items: { time: number; timeStr: string; type: 'session' | 'speak' }[] = [];
 
       sessionSnap.docs.forEach(doc => {
         const d = doc.data().completedAt?.toDate?.();
         if (d) items.push({ time: d.getTime(), timeStr: formatTime(d), type: 'session' });
-      });
-      quizSnap.docs.forEach(doc => {
-        const d = doc.data().completedAt?.toDate?.();
-        if (d) items.push({ time: d.getTime(), timeStr: formatTime(d), type: 'quiz' });
       });
       speakSnap.docs.forEach(doc => {
         const d = doc.data().completedAt?.toDate?.();
@@ -111,11 +98,9 @@ export default function StatsScreen() {
 
       items.sort((a, b) => a.time - b.time);
 
-      const counts = { session: 0, quiz: 0, speak: 0 };
-      const maxCounts = { session: 2, quiz: 1, speak: 2 };
-
-      // 타입별 마지막 시간 저장
-      const lastTime: { session: string; quiz: string; speak: string } = { session: '', quiz: '', speak: '' };
+      const counts = { session: 0, speak: 0 };
+      const maxCounts = { session: 2, speak: 2 };
+      const lastTime: { session: string; speak: string } = { session: '', speak: '' };
 
       items.forEach(item => {
         counts[item.type] = Math.min(counts[item.type] + 1, maxCounts[item.type]);
@@ -124,9 +109,6 @@ export default function StatsScreen() {
 
       if (counts.session > 0) {
         records.push({ date: dateStr, time: lastTime.session, type: 'session', count: counts.session, max: maxCounts.session });
-      }
-      if (counts.quiz > 0) {
-        records.push({ date: dateStr, time: lastTime.quiz, type: 'quiz', count: counts.quiz, max: maxCounts.quiz });
       }
       if (counts.speak > 0) {
         records.push({ date: dateStr, time: lastTime.speak, type: 'speak', count: counts.speak, max: maxCounts.speak });
@@ -161,7 +143,7 @@ export default function StatsScreen() {
       const results = await Promise.all(
         dayPromises.map(date => {
           const isFuture = date > today;
-          if (isFuture) return Promise.resolve({ status: 'future' as DayStatus, sessionCount: 0, quizCount: 0, speakCount: 0 });
+          if (isFuture) return Promise.resolve({ status: 'future' as DayStatus, sessionCount: 0, speakCount: 0 });
           return checkDayComplete(uid, date);
         })
       );
@@ -196,7 +178,7 @@ export default function StatsScreen() {
       const results = await Promise.all(
         dayPromises.map(date => {
           const isFuture = date > today;
-          if (isFuture) return Promise.resolve({ status: 'future' as DayStatus, sessionCount: 0, quizCount: 0, speakCount: 0 });
+          if (isFuture) return Promise.resolve({ status: 'future' as DayStatus, sessionCount: 0, speakCount: 0 });
           return checkDayComplete(uid, date);
         })
       );
@@ -217,9 +199,8 @@ export default function StatsScreen() {
     return ' ';
   };
 
-  const typeLabel = (type: 'session' | 'quiz' | 'speak') => {
+  const typeLabel = (type: 'session' | 'speak') => {
     if (type === 'session') return '손운동';
-    if (type === 'quiz') return '퀴즈';
     return '말하기';
   };
 
@@ -242,7 +223,7 @@ export default function StatsScreen() {
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${weeklyRate}%` }]} />
         </View>
-        <Text style={[styles.progressText, { fontSize: 16 * fontScale }]}>운동 퀴즈 말하기 모두 완료하세요!</Text>
+        <Text style={[styles.progressText, { fontSize: 16 * fontScale }]}>운동 산책하기 말하기 모두 완료하세요!</Text>
       </View>
 
       <View style={styles.card}>

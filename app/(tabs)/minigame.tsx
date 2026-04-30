@@ -18,10 +18,10 @@ export default function MinigameScreen() {
         style={styles.gameCard}
         onPress={() => router.push('/minigames/wordgame')}
       >
-        <Text style={{ fontSize: 40 * fontScale }}>🔤</Text>
+        <Text style={{ fontSize: 40 * fontScale }}>🇰🇷</Text>
         <View style={styles.gameInfo}>
-          <Text style={[styles.gameName, { fontSize: 20 * fontScale }]}>영단어 기억 게임</Text>
-          <Text style={[styles.gameDesc, { fontSize: 14 * fontScale }]}>단어를 기억하고 알파벳을 맞춰보세요!</Text>
+          <Text style={[styles.gameName, { fontSize: 20 * fontScale }]}>한국어 기억 게임</Text>
+          <Text style={[styles.gameDesc, { fontSize: 14 * fontScale }]}>단어를 기억하고 자모를 눌러 맞춰보세요!</Text>
         </View>
       </TouchableOpacity>
 

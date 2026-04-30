@@ -5,21 +5,22 @@ import { useFontSize } from '../../context/FontSizeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const WORDS = [
-'cat', 'dog', 'sun', 'hat', 'pen', 'cup', 'box', 'map', 'bus', 'egg',
-'arm', 'bed', 'car', 'ear', 'fan', 'gum', 'hop', 'ink', 'jam', 'key',
-'apple', 'bread', 'chair', 'dream', 'earth', 'flame', 'grape', 'house',
-'image', 'juice', 'knife', 'light', 'money', 'night', 'ocean', 'paint',
-'queen', 'river', 'sugar', 'tiger',
-'bridge', 'castle', 'doctor', 'engine', 'flight', 'garden', 'hammer',
-'island', 'jungle', 'kitten', 'mirror', 'nature', 'orange', 'purple',
-'rocket', 'silver', 'tunnel', 'village', 'winter', 'yellow',
+  '사과', '바나나', '딸기', '포도', '수박', '복숭아', '귤', '감',
+  '고양이', '강아지', '토끼', '곰', '호랑이', '사자', '코끼리', '기린',
+  '학교', '병원', '도서관', '공원', '시장', '마트', '카페', '식당',
+  '봄', '여름', '가을', '겨울', '하늘', '바다', '산', '강',
+  '사랑', '행복', '희망', '기쁨', '슬픔', '화남', '두려움', '평화',
+  '밥', '국', '김치', '떡볶이', '라면', '피자', '치킨', '빵',
+  '책', '연필', '지우개', '가방', '안경', '시계', '핸드폰', '컴퓨터',
+  '버스', '기차', '비행기', '자동차', '자전거', '오토바이', '배', '택시',
+  '의사', '간호사', '선생님', '경찰', '소방관', '요리사', '운전사', '농부',
+  '노래', '춤', '그림', '글', '운동', '독서', '요리', '여행',
 ];
 
 type GamePhase = 'ready' | 'showing' | 'guessing' | 'gameover';
 
 const SHOW_TIME = 3;
-const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'.split('');
-const EXTRA_LETTERS = 6; // 정답 외 추가 알파벳 수
+const EXTRA_CHARS = 6;
 
 function getRandomWord(exclude: string[]): string {
   const pool = WORDS.filter(w => !exclude.includes(w));
@@ -28,10 +29,11 @@ function getRandomWord(exclude: string[]): string {
 }
 
 function getKeyboard(word: string): string[] {
-  const wordLetters = Array.from(new Set(word.split('')));
-  const others = ALPHABET.filter(l => !wordLetters.includes(l));
-  const shuffledOthers = others.sort(() => Math.random() - 0.5).slice(0, EXTRA_LETTERS);
-  return [...wordLetters, ...shuffledOthers].sort(() => Math.random() - 0.5);
+  const wordChars = Array.from(new Set(word.split('')));
+  const others = WORDS.join('').split('').filter(c => !wordChars.includes(c));
+  const uniqueOthers = Array.from(new Set(others));
+  const shuffledOthers = uniqueOthers.sort(() => Math.random() - 0.5).slice(0, EXTRA_CHARS);
+  return [...wordChars, ...shuffledOthers].sort(() => Math.random() - 0.5);
 }
 
 export default function WordGameScreen() {
@@ -40,15 +42,14 @@ export default function WordGameScreen() {
   const [currentWord, setCurrentWord] = useState('');
   const [usedWords, setUsedWords] = useState<string[]>([]);
   const [countdown, setCountdown] = useState(SHOW_TIME);
-  const [revealedIndices, setRevealedIndices] = useState<number[]>([]);
-  const [selectedLetters, setSelectedLetters] = useState<(string | undefined)[]>([]);
+  const [inputChars, setInputChars] = useState<string[]>([]);
   const [keyboard, setKeyboard] = useState<string[]>([]);
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [isNewRecord, setIsNewRecord] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem('wordgame_best').then(val => {
+    AsyncStorage.getItem('korgame_best').then(val => {
       if (val) setBestScore(parseInt(val));
     });
   }, []);
@@ -63,14 +64,13 @@ export default function WordGameScreen() {
     return () => clearTimeout(timer);
   }, [phase, countdown]);
 
-  const startNewWord = useCallback((exclude: string[], currentScore: number) => {
+  const startNewWord = useCallback((exclude: string[]) => {
     const word = getRandomWord(exclude);
     setCurrentWord(word);
     setKeyboard(getKeyboard(word));
     setUsedWords(prev => [...prev, word]);
     setCountdown(SHOW_TIME);
-    setRevealedIndices([]);
-    setSelectedLetters([]);
+    setInputChars([]);
     setPhase('showing');
   }, []);
 
@@ -83,48 +83,24 @@ export default function WordGameScreen() {
     setKeyboard(getKeyboard(word));
     setUsedWords([word]);
     setCountdown(SHOW_TIME);
-    setRevealedIndices([]);
-    setSelectedLetters([]);
+    setInputChars([]);
     setPhase('showing');
   }, []);
 
-  const revealHint = useCallback(() => {
-    const unrevealed = currentWord.split('').map((_, i) => i).filter(i => !revealedIndices.includes(i));
-    if (unrevealed.length === 0) return;
-    const randomIndex = unrevealed[Math.floor(Math.random() * unrevealed.length)];
-    setRevealedIndices(prev => [...prev, randomIndex]);
-  }, [currentWord, revealedIndices]);
+  const handleKeyPress = useCallback((char: string) => {
+    const newInput = [...inputChars, char];
+    setInputChars(newInput);
 
-  const handleLetterSelect = useCallback((letter: string) => {
-    const nextEmptyIndex = currentWord.split('').findIndex(
-      (_, i) => !revealedIndices.includes(i) && !selectedLetters[i]
-    );
-    if (nextEmptyIndex === -1) return;
-
-    const newSelected = [...selectedLetters];
-    newSelected[nextEmptyIndex] = letter;
-    setSelectedLetters(newSelected);
-
-    const allFilled = currentWord.split('').every(
-      (_, i) => revealedIndices.includes(i) || newSelected[i]
-    );
-
-    if (allFilled) {
-      const answer = currentWord.split('').map(
-        (l, i) => revealedIndices.includes(i) ? l : newSelected[i]
-      ).join('');
-      const correct = answer === currentWord;
-
+    if (newInput.length === currentWord.length) {
+      const correct = newInput.join('') === currentWord;
       if (correct) {
-        // 정답 → 바로 다음 문제
         const newScore = score + 1;
         setScore(newScore);
-        startNewWord([...usedWords], newScore);
+        startNewWord([...usedWords]);
       } else {
-        // 오답 → 게임 오버
         const handleGameOver = async () => {
           if (score > bestScore) {
-            await AsyncStorage.setItem('wordgame_best', String(score));
+            await AsyncStorage.setItem('korgame_best', String(score));
             setBestScore(score);
             setIsNewRecord(true);
           }
@@ -133,18 +109,11 @@ export default function WordGameScreen() {
         handleGameOver();
       }
     }
-  }, [selectedLetters, currentWord, revealedIndices, score, bestScore, usedWords, startNewWord]);
+  }, [inputChars, currentWord, score, bestScore, usedWords, startNewWord]);
 
   const handleDelete = useCallback(() => {
-    const newSelected = [...selectedLetters];
-    for (let i = newSelected.length - 1; i >= 0; i--) {
-      if (newSelected[i] && !revealedIndices.includes(i)) {
-        newSelected[i] = undefined;
-        break;
-      }
-    }
-    setSelectedLetters(newSelected);
-  }, [selectedLetters, revealedIndices]);
+    setInputChars(prev => prev.slice(0, -1));
+  }, []);
 
   // 시작 화면
   if (phase === 'ready') {
@@ -154,9 +123,9 @@ export default function WordGameScreen() {
           <Text style={[styles.backButtonText, { fontSize: 14 * fontScale }]}>{'<'} 뒤로</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.title, { fontSize: 28 * fontScale }]}>🔤 영단어 기억 게임</Text>
+        <Text style={[styles.title, { fontSize: 28 * fontScale }]}>🇰🇷 한국어 기억 게임</Text>
         <Text style={[styles.subtitle, { fontSize: 16 * fontScale }]}>
-          단어를 {SHOW_TIME}초 동안 기억하고{'\n'}알파벳을 맞춰보세요!{'\n'}틀리면 게임 오버!
+          단어를 {SHOW_TIME}초 동안 기억하고{'\n'}글자를 눌러 단어를 맞춰보세요!{'\n'}틀리면 게임 오버!
         </Text>
 
         <View style={styles.bestScoreCard}>
@@ -178,17 +147,12 @@ export default function WordGameScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => setPhase('ready')}>
           <Text style={[styles.backButtonText, { fontSize: 14 * fontScale }]}>{'<'} 뒤로</Text>
         </TouchableOpacity>
-
         <View style={styles.showingContainer}>
           <Text style={[styles.scoreTopText, { fontSize: 20 * fontScale }]}>점수: {score}</Text>
           <Text style={[styles.countdownText, { fontSize: 64 * fontScale }]}>{countdown}</Text>
           <Text style={[styles.showingLabel, { fontSize: 16 * fontScale }]}>이 단어를 기억하세요!</Text>
-          <View style={styles.wordContainer}>
-            {currentWord.split('').map((letter, i) => (
-              <View key={i} style={styles.letterBox}>
-                <Text style={[styles.letterText, { fontSize: 36 * fontScale }]}>{letter}</Text>
-              </View>
-            ))}
+          <View style={styles.wordBox}>
+            <Text style={[styles.wordText, { fontSize: 48 * fontScale }]}>{currentWord}</Text>
           </View>
         </View>
       </View>
@@ -209,45 +173,33 @@ export default function WordGameScreen() {
 
         <Text style={[styles.title, { fontSize: 22 * fontScale }]}>단어를 맞춰보세요!</Text>
 
+        {/* 빈칸 표시 */}
         <View style={styles.blankRow}>
-          {currentWord.split('').map((letter, i) => (
-            <View key={i} style={[styles.blankBox, revealedIndices.includes(i) && styles.blankBoxRevealed]}>
+          {currentWord.split('').map((_, i) => (
+            <View key={i} style={styles.blankBox}>
               <Text style={[styles.blankText, { fontSize: 28 * fontScale }]}>
-                {revealedIndices.includes(i) ? letter : selectedLetters[i] ?? ''}
+                {inputChars[i] ?? ''}
               </Text>
             </View>
           ))}
         </View>
 
-        <TouchableOpacity
-          style={[styles.hintBtn, revealedIndices.length >= currentWord.length && styles.hintBtnDisabled]}
-          onPress={revealHint}
-          disabled={revealedIndices.length >= currentWord.length}
-        >
-          <Text style={[styles.hintBtnText, { fontSize: 16 * fontScale }]}>
-            💡 힌트 ({currentWord.length - revealedIndices.length}개 남음)
-          </Text>
-        </TouchableOpacity>
-
+        {/* 지우기 버튼 */}
         <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
           <Text style={[styles.deleteBtnText, { fontSize: 16 * fontScale }]}>⌫ 지우기</Text>
         </TouchableOpacity>
 
-        {/* 줄인 키패드 */}
+        {/* 글자 키패드 */}
         <View style={styles.keyboard}>
-          {keyboard.map((letter) => {
-            const isRevealed = revealedIndices.some(i => currentWord[i] === letter);
-            return (
-              <TouchableOpacity
-                key={letter}
-                style={[styles.keyBtn, isRevealed && styles.keyBtnRevealed]}
-                onPress={() => handleLetterSelect(letter)}
-                disabled={isRevealed}
-              >
-                <Text style={[styles.keyText, { fontSize: 18 * fontScale }]}>{letter}</Text>
-              </TouchableOpacity>
-            );
-          })}
+          {keyboard.map((char, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={styles.keyBtn}
+              onPress={() => handleKeyPress(char)}
+            >
+              <Text style={[styles.keyText, { fontSize: 20 * fontScale }]}>{char}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
     );
@@ -289,7 +241,7 @@ const styles = StyleSheet.create({
   backButtonText: { color: '#2D6A4F', fontWeight: '600' },
   title: { fontWeight: '700', color: '#212121', marginBottom: 8, textAlign: 'center' },
   subtitle: { color: '#666', textAlign: 'center', marginBottom: 24, lineHeight: 28 },
-  bestScoreCard: { backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 24, width: '100%', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  bestScoreCard: { backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 24, width: '100%', shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
   bestScoreLabel: { color: '#9E9E9E', marginBottom: 4 },
   bestScoreValue: { fontWeight: '700', color: '#4DA56F' },
   scoreSub: { color: '#9E9E9E', marginTop: 4 },
@@ -299,21 +251,15 @@ const styles = StyleSheet.create({
   showingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 20 },
   countdownText: { fontWeight: '700', color: '#4DA56F' },
   showingLabel: { color: '#666' },
-  wordContainer: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'center' },
-  letterBox: { width: 52, height: 52, backgroundColor: '#fff', borderRadius: 12, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  letterText: { fontWeight: '700', color: '#212121' },
-  blankRow: { flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 20, marginTop: 10 },
-  blankBox: { width: 48, height: 48, backgroundColor: '#fff', borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#E0E0E0' },
-  blankBoxRevealed: { backgroundColor: '#E8F5E9', borderColor: '#4DA56F' },
+  wordBox: { backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 40, paddingVertical: 24, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
+  wordText: { fontWeight: '700', color: '#212121' },
+  blankRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginBottom: 20, marginTop: 10 },
+  blankBox: { width: 56, height: 56, backgroundColor: '#fff', borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#E0E0E0', shadowColor: '#000', shadowOffset: { width: 3, height: 3 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 3 },
   blankText: { fontWeight: '700', color: '#212121' },
-  hintBtn: { backgroundColor: '#FFF8E1', borderRadius: 20, padding: 14, alignItems: 'center', marginBottom: 10 },
-  hintBtnDisabled: { opacity: 0.4 },
-  hintBtnText: { color: '#F57F17', fontWeight: '700' },
   deleteBtn: { backgroundColor: '#FFEBEE', borderRadius: 20, padding: 14, alignItems: 'center', marginBottom: 16 },
   deleteBtnText: { color: '#EF5350', fontWeight: '700' },
   keyboard: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', paddingBottom: 40 },
-  keyBtn: { width: 52, height: 52, backgroundColor: '#fff', borderRadius: 12, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  keyBtnRevealed: { backgroundColor: '#E8F5E9' },
+  keyBtn: { width: 56, height: 56, backgroundColor: '#fff', borderRadius: 12, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 3, height: 3 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 3 },
   keyText: { fontWeight: '700', color: '#212121' },
   resultEmoji: { textAlign: 'center', marginBottom: 16 },
   resultWord: { color: '#EF5350', fontWeight: '700', textAlign: 'center', marginBottom: 16 },
