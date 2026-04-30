@@ -25,6 +25,17 @@ export default function MinigameScreen() {
         </View>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.gameCard}
+        onPress={() => router.push('/(tabs)/quiz')}
+      >
+        <Text style={{ fontSize: 40 * fontScale }}>🧠</Text>
+        <View style={styles.gameInfo}>
+          <Text style={[styles.gameName, { fontSize: 20 * fontScale }]}>오늘의 퀴즈</Text>
+          <Text style={[styles.gameDesc, { fontSize: 14 * fontScale }]}>10문제를 풀고 틀린 문제를 재도전해보세요!</Text>
+        </View>
+      </TouchableOpacity>
+
       <View style={[styles.gameCard, styles.gameCardDisabled]}>
         <Text style={{ fontSize: 40 * fontScale }}>🧩</Text>
         <View style={styles.gameInfo}>
@@ -50,7 +61,7 @@ const styles = StyleSheet.create({
   backButtonText: { color: '#2D6A4F', fontWeight: '600' },
   title: { fontWeight: '700', color: '#212121', marginBottom: 8, textAlign: 'center' },
   subtitle: { color: '#666', textAlign: 'center', marginBottom: 32 },
-  gameCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  gameCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 16, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
   gameCardDisabled: { opacity: 0.5 },
   gameInfo: { flex: 1 },
   gameName: { fontWeight: '700', color: '#212121', marginBottom: 4 },

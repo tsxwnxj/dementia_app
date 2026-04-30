@@ -67,8 +67,8 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFE', padding: 22, paddingTop: 64 },
   title: { fontWeight: '700', color: '#212121', marginBottom: 28 },
-  card: { backgroundColor: '#fff', borderRadius: 20, padding: 22, marginBottom: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  fontCard: { backgroundColor: '#fff', borderRadius: 20, padding: 22, marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+ card: { backgroundColor: '#fff', borderRadius: 20, padding: 22, marginBottom: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
+  fontCard: { backgroundColor: '#fff', borderRadius: 20, padding: 22, marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
   cardLabel: { color: '#424242', fontWeight: '500', marginBottom: 12 },
   cardValue: { color: '#9E9E9E' },
   buttonGroup: { flexDirection: 'row', gap: 12 },

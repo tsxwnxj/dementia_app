@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { getTodaySessionCount, getUserProgress, getLastSessionTime, getTodayQuizCount, getTodaySpeakCount } from '../../services/firestore';
+import { getTodaySessionCount, getUserProgress, getLastSessionTime, getTodaySpeakCount } from '../../services/firestore';
 import { useFontSize } from '../../context/FontSizeContext';
 
 const TIPS: string[] = [
@@ -19,8 +19,8 @@ export default function HomeScreen() {
   const [sessionCount, setSessionCount] = useState<number>(0);
   const [streak, setStreak] = useState<number>(0);
   const [todayTip, setTodayTip] = useState<string>('');
-  const [quizCount, setQuizCount] = useState<number>(0);
   const [speakCount, setSpeakCount] = useState<number>(0);
+  const [walkDone, setWalkDone] = useState<boolean>(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -28,11 +28,9 @@ export default function HomeScreen() {
         try {
           const count = await getTodaySessionCount();
           const progress = await getUserProgress();
-          const quiz = await getTodayQuizCount();
           const speak = await getTodaySpeakCount();
           setSessionCount(count);
           setStreak(progress.streak ?? 0);
-          setQuizCount(quiz);
           setSpeakCount(speak);
         } catch (e) {
           console.error(e);
@@ -80,9 +78,8 @@ export default function HomeScreen() {
   };
 
   const isDone = sessionCount >= 2;
-  const quizDone = quizCount >= 2;
   const speakDone = speakCount >= 2;
-  const totalDone = (isDone ? 1 : 0) + (quizDone ? 1 : 0) + (speakDone ? 1 : 0);
+  const totalDone = (isDone ? 1 : 0) + (walkDone ? 1 : 0) + (speakDone ? 1 : 0);
 
   const getCountLabel = (count: number) => {
     if (count === 0) return '';
@@ -125,13 +122,14 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.questBtn, quizDone && styles.questBtnDone]}
-          onPress={() => router.push('/(tabs)/quiz')}
+          style={[styles.questBtn, walkDone && styles.questBtnDone]}
+          disabled={walkDone}
+          onPress={() => Alert.alert('산책하기 퀘스트', '준비 중이에요! 🚶')}
         >
-          <Text style={{ fontSize: 28 * fontScale }}>🧠</Text>
-          <Text style={[styles.questLabel, { fontSize: 13 * fontScale }]}>퀴즈</Text>
+          <Text style={{ fontSize: 28 * fontScale }}>🚶</Text>
+          <Text style={[styles.questLabel, { fontSize: 13 * fontScale }]}>산책하기</Text>
           <Text style={[styles.questCount, { fontSize: 13 * fontScale }]}>
-            {quizDone ? '✅' : ''}
+            {walkDone ? '✅' : ''}
           </Text>
         </TouchableOpacity>
 
@@ -167,21 +165,21 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#C2E7BB', padding: 22, paddingTop: 64 },
   greeting: { fontWeight: '700', color: '#212121', marginBottom: 20, textAlign: 'center', letterSpacing: -1 },
-  streakCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  streakCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
   streakEmoji: { marginRight: 14 },
   streakCount: { fontWeight: '700', color: '#E65100' },
   streakSub: { fontWeight: '600', color: '#FF6D00', marginTop: 2 },
-  progressCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  progressCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
   progressLabel: { fontWeight: '700', color: '#000', marginBottom: 8 },
   progressCount: { fontWeight: '700', color: '#4DA56F', marginBottom: 14 },
   progressBar: { height: 12, backgroundColor: '#E3F2FD', borderRadius: 6, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: '#4A90E2', borderRadius: 6 },
   questRow: { flexDirection: 'row', gap: 12, marginBottom: 14 },
-  questBtn: { flex: 1, backgroundColor: '#fff', borderRadius: 20, paddingVertical: 16, alignItems: 'center', gap: 4, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  questBtn: { flex: 1, backgroundColor: '#fff', borderRadius: 20, paddingVertical: 16, alignItems: 'center', gap: 4, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
   questBtnDone: { backgroundColor: '#E8F5E9', borderWidth: 2, borderColor: '#4DA56F' },
   questLabel: { color: '#424242', fontWeight: '600', textAlign: 'center' },
   questCount: { color: '#4DA56F', fontWeight: '700' },
-  tipCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14 },
+  tipCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
   tipTitle: { fontWeight: '700', color: '#000', marginBottom: 10 },
   tipText: { color: '#000', lineHeight: 28 },
   minigameBtn: { backgroundColor: '#4DA56F', padding: 20, borderRadius: 36, alignItems: 'center', marginBottom: 40 },

@@ -336,7 +336,7 @@ export default function StatsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#C2E7BB', padding: 22, paddingTop: 64 },
   title: { fontWeight: '700', color: '#212121', marginBottom: 24, textAlign: 'center' },
-  card: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  card: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   rateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   rateValue: { fontWeight: '700', color: '#4DA56F' },
