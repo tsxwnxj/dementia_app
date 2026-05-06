@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { getTodaySessionCount, getUserProgress, getLastSessionTime, getTodaySpeakCount } from '../../services/firestore';
+import { auth } from '../../services/firebase';
 import { useFontSize } from '../../context/FontSizeContext';
 
 const TIPS: string[] = [
@@ -25,6 +26,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
+        if (!auth.currentUser) return;
         try {
           const count = await getTodaySessionCount();
           const progress = await getUserProgress();

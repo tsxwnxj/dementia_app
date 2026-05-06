@@ -7,8 +7,9 @@ import {
   Modal,
   SafeAreaView,
   Alert,
+  Linking,
 } from 'react-native';
-//import * as Location from 'expo-location'; location 권한 문제로 일단 주석 처리
+import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 
 type WalkType = 'indoor' | 'outdoor';
@@ -88,11 +89,27 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
     if (walkType !== 'outdoor') return;
 
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('위치 권한이 필요합니다');
+      const { status: existing } = await Location.getForegroundPermissionsAsync();
+      let finalStatus = existing;
+
+      if (existing !== 'granted') {
+        const { status: asked } = await Location.requestForegroundPermissionsAsync();
+        finalStatus = asked;
+      }
+
+      if (finalStatus !== 'granted') {
+        Alert.alert(
+          '위치 권한 필요',
+          '실외 산책 거리 측정을 위해 위치 권한이 필요합니다.\n설정 > 개인 정보 보호 > 위치 서비스에서 허용해 주세요.',
+          [
+            { text: '취소', style: 'cancel' },
+            { text: '설정 열기', onPress: () => Linking.openSettings() },
+          ]
+        );
         return;
       }
+      await Location.requestBackgroundPermissionsAsync();
+
       locationSubRef.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.BestForNavigation,

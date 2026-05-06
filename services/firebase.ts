@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { initializeAuth } from 'firebase/auth';
+import { initializeAuth, getAuth } from 'firebase/auth';
 // @ts-ignore — Firebase v12 React Native persistence path
 import { getReactNativePersistence } from '@firebase/auth/dist/rn';
 import { getFirestore } from 'firebase/firestore';
@@ -16,7 +16,15 @@ const firebaseConfig = {
 
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
+// hot-reload 시 initializeAuth가 중복 호출되면 에러가 나므로 getAuth로 폴백
+export const auth = (() => {
+  try {
+    return initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch {
+    return getAuth(app);
+  }
+})();
+
 export const db = getFirestore(app);

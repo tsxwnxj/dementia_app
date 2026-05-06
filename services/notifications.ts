@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { getTodaySessionCount } from '../services/firestore';
+import { auth } from '../services/firebase';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -36,6 +37,7 @@ export async function setupNotifications(): Promise<void> {
 }
 
 export async function refreshNotifications(): Promise<void> {
+  if (!auth.currentUser) return;
   const count = await getTodaySessionCount();
 
   if (count === 1) {

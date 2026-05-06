@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   SafeAreaView,
+  Platform,
   ListRenderItemInfo,
 } from 'react-native';
 import * as Location from 'expo-location';
@@ -29,38 +30,48 @@ interface Props {
   onBack: () => void;
 }
 
-function openKakaoNavi(lat: number, lng: number, name: string): void {
-  const url = `kakaomap://route?ep=${lat},${lng}&by=FOOT`;
-  Linking.canOpenURL(url).then((supported) => {
-    if (supported) {
-      Linking.openURL(url);
-    } else {
-      const webUrl = `https://map.kakao.com/link/to/${encodeURIComponent(name)},${lat},${lng}`;
-      Linking.openURL(webUrl);
-    }
-  });
-}
+async function openMap(lat: number, lng: number, name: string): Promise<void> {
+  const encoded = encodeURIComponent(name);
 
-function openNaverNavi(lat: number, lng: number, name: string): void {
-  const url = `nmap://route/walk?dlat=${lat}&dlng=${lng}&dname=${encodeURIComponent(name)}&appname=com.junseojang.dementiaapp`;
-  Linking.canOpenURL(url).then((supported) => {
-    if (supported) {
-      Linking.openURL(url);
-    } else {
-      const webUrl = `https://map.naver.com/v5/directions/-/-/-/walk?c=${lng},${lat},15,0,0,0,dh`;
-      Linking.openURL(webUrl);
-    }
-  });
+  const apps: { label: string; url: string; webUrl: string }[] = [
+    {
+      label: '카카오맵',
+      url: `kakaomap://route?ep=${lat},${lng}&by=FOOT`,
+      webUrl: `https://map.kakao.com/link/to/${encoded},${lat},${lng}`,
+    },
+    {
+      label: '네이버지도',
+      url: `nmap://route/walk?dlat=${lat}&dlng=${lng}&dname=${encoded}&appname=com.junseojang.dementiaapp`,
+      webUrl: `https://map.naver.com/v5/directions/-/-/-/walk?c=${lng},${lat},15,0,0,0,dh`,
+    },
+  ];
+
+  if (Platform.OS === 'ios') {
+    apps.push({
+      label: '애플지도',
+      url: `maps://route?daddr=${lat},${lng}&dirflg=w`,
+      webUrl: `https://maps.apple.com/?daddr=${lat},${lng}&dirflg=w`,
+    });
+  }
+
+  Alert.alert(
+    '지도 앱 선택',
+    `${name}까지 길 안내를 시작합니다`,
+    [
+      ...apps.map(({ label, url, webUrl }) => ({
+        text: label,
+        onPress: async () => {
+          const supported = await Linking.canOpenURL(url);
+          Linking.openURL(supported ? url : webUrl);
+        },
+      })),
+      { text: '취소', style: 'cancel' as const },
+    ]
+  );
 }
 
 async function fetchNearbyParks(lat: number, lng: number): Promise<Course[]> {
-  // 실제 배포 시 카카오 REST API로 교체:
-  // const KAKAO_REST_KEY = 'YOUR_KEY';
-  // const res = await fetch(
-  //   `https://dapi.kakao.com/v2/local/search/keyword.json?query=공원&x=${lng}&y=${lat}&radius=3000`,
-  //   { headers: { Authorization: `KakaoAK ${KAKAO_REST_KEY}` } }
-  // );
-  await new Promise<void>((r) => setTimeout(r, 1000));
+  await new Promise<void>((r) => setTimeout(r, 800));
   return [
     {
       id: '1', name: '근처 공원', type: '공원',
@@ -69,13 +80,13 @@ async function fetchNearbyParks(lat: number, lng: number): Promise<Course[]> {
       desc: '평탄한 산책로, 벤치 있음', icon: '🌳',
     },
     {
-      id: '2', name: '○○ 근린공원', type: '공원',
+      id: '2', name: '근린공원', type: '공원',
       distance: '780m', duration: '약 10분',
       lat: lat + 0.007, lng: lng - 0.003,
       desc: '운동기구, 화장실 완비', icon: '🏞️',
     },
     {
-      id: '3', name: '○○ 둘레길', type: '가벼운 등산',
+      id: '3', name: '둘레길', type: '가벼운 등산',
       distance: '1.2km', duration: '약 15분',
       lat: lat - 0.005, lng: lng + 0.008,
       desc: '경사 완만, 왕복 40분 코스', icon: '⛰️',
@@ -90,38 +101,44 @@ export default function WalkCourseScreen({ onBack }: Props) {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('위치 권한이 필요합니다');
+      try {
+        const { status: existing } = await Location.getForegroundPermissionsAsync();
+        let finalStatus = existing;
+
+        if (existing !== 'granted') {
+          const { status: asked } = await Location.requestForegroundPermissionsAsync();
+          finalStatus = asked;
+        }
+
+        if (finalStatus !== 'granted') {
+          Alert.alert(
+            '위치 권한 필요',
+            '주변 산책 코스를 찾으려면 위치 권한이 필요합니다.\n설정 > 개인 정보 보호 > 위치 서비스에서 허용해 주세요.',
+            [
+              { text: '기본 코스 보기', onPress: async () => {
+                setCourses(await fetchNearbyParks(37.5665, 126.9780));
+                setLoading(false);
+              }},
+              { text: '설정 열기', onPress: () => Linking.openSettings() },
+            ]
+          );
+          return;
+        }
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        setCourses(await fetchNearbyParks(loc.coords.latitude, loc.coords.longitude));
+      } catch {
+        setCourses(await fetchNearbyParks(37.5665, 126.9780));
+      } finally {
         setLoading(false);
-        return;
       }
-      const loc = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = loc.coords;
-      const results = await fetchNearbyParks(latitude, longitude);
-      setCourses(results);
-      setLoading(false);
     })();
   }, []);
 
-  const handleNavigate = (course: Course): void => {
-    Alert.alert(
-      '지도 앱 선택',
-      `${course.name}까지 길 안내를 시작합니다`,
-      [
-        { text: '카카오맵', onPress: () => openKakaoNavi(course.lat, course.lng, course.name) },
-        { text: '네이버지도', onPress: () => openNaverNavi(course.lat, course.lng, course.name) },
-        { text: '취소', style: 'cancel' },
-      ]
-    );
-  };
-
   const renderItem = ({ item }: ListRenderItemInfo<Course>) => (
     <TouchableOpacity
-      style={[
-        styles.courseCard,
-        selected?.id === item.id && styles.courseCardSelected,
-      ]}
+      style={[styles.courseCard, selected?.id === item.id && styles.courseCardSelected]}
       onPress={() => setSelected(item)}
       activeOpacity={0.85}
     >
@@ -141,7 +158,7 @@ export default function WalkCourseScreen({ onBack }: Props) {
       {selected?.id === item.id && (
         <TouchableOpacity
           style={styles.naviBtn}
-          onPress={() => handleNavigate(item)}
+          onPress={() => openMap(item.lat, item.lng, item.name)}
           activeOpacity={0.85}
         >
           <Text style={styles.naviBtnText}>🧭 길 안내 시작</Text>
