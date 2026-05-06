@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
-import { getTodaySessionCount } from '../services/firestore';
 import { auth } from '../services/firebase';
+import { getLastSessionTime, getTodaySessionCount } from '../services/firestore';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -19,49 +19,52 @@ export async function setupNotifications(): Promise<void> {
     return;
   }
 
-  await Notifications.scheduleNotificationAsync({
-    identifier: 'daily_9am',
-    content: {
-      title: '🖐️ HandFit 손 체조 시간이에요!',
-      body: '오늘 아직 운동을 안 하셨어요. 지금 시작해볼까요?',
-      sound: true,
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 9,
-      minute: 0,
-    },
-  });
-
   await refreshNotifications();
 }
 
 export async function refreshNotifications(): Promise<void> {
   if (!auth.currentUser) return;
+
+  // 🔥 기존 알림 제거
+  await Notifications.cancelScheduledNotificationAsync('morning_11');
+  await Notifications.cancelScheduledNotificationAsync('evening_6');
+
+  const lastTime = await getLastSessionTime();
   const count = await getTodaySessionCount();
 
-  if (count === 1) {
-    await Notifications.cancelScheduledNotificationAsync('daily_9am');
+  let didMorning = false;
+  let didAfternoon = false;
 
+  if (lastTime) {
+    const hour = lastTime.getHours();
+    if (hour < 12) didMorning = true;
+    else didAfternoon = true;
+  }
+
+  // ✅ 오전 안 했으면 → 11시 알림
+  if (!didMorning) {
     await Notifications.scheduleNotificationAsync({
-      identifier: 'daily_9am',
+      identifier: 'morning_11',
       content: {
-        title: '🖐️ HandFit 손 체조 시간이에요!',
-        body: '오늘 아직 운동을 안 하셨어요. 지금 시작해볼까요?',
+        title: '🖐️ 손 운동 시간이에요!',
+        body: '아직 아침 운동을 안 하셨어요 😊',
         sound: true,
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: 9,
+        hour: 11,
         minute: 0,
       },
     });
+  }
 
+  // ✅ 오후 안 했으면 → 18시 알림
+  if (!didAfternoon && count < 2) {
     await Notifications.scheduleNotificationAsync({
-      identifier: 'daily_10pm',
+      identifier: 'evening_6',
       content: {
-        title: '🖐️ HandFit 손 체조 한 번 더!',
-        body: '오늘 목표까지 한 번 남았어요. 자기 전에 같이 해봐요 💪',
+        title: '🖐️ 오늘 한 번 더 해볼까요?',
+        body: '오후 운동이 아직 남았어요 💪',
         sound: true,
       },
       trigger: {
@@ -70,9 +73,13 @@ export async function refreshNotifications(): Promise<void> {
         minute: 0,
       },
     });
-  } else if (count >= 2) {
-    await Notifications.cancelScheduledNotificationAsync('daily_10pm');
   }
 
-  console.log(`✅ 알림 재설정 완료 (오늘 운동 횟수: ${count})`);
+  // ✅ 둘 다 했으면 알림 제거
+  if (count >= 2) {
+    await Notifications.cancelScheduledNotificationAsync('morning_11');
+    await Notifications.cancelScheduledNotificationAsync('evening_6');
+  }
+
+  console.log(`✅ 알림 설정 완료 (count:${count}, 오전:${didMorning}, 오후:${didAfternoon})`);
 }

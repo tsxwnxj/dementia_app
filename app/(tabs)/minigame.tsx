@@ -14,6 +14,7 @@ export default function MinigameScreen() {
       <Text style={[styles.title, { fontSize: 28 * fontScale }]}>🎮 미니게임</Text>
       <Text style={[styles.subtitle, { fontSize: 16 * fontScale }]}>즐기면서 두뇌를 훈련해요!</Text>
 
+      {/* 한국어 기억 게임 */}
       <TouchableOpacity
         style={styles.gameCard}
         onPress={() => router.push('/minigames/wordgame')}
@@ -21,10 +22,27 @@ export default function MinigameScreen() {
         <Text style={{ fontSize: 40 * fontScale }}>🇰🇷</Text>
         <View style={styles.gameInfo}>
           <Text style={[styles.gameName, { fontSize: 20 * fontScale }]}>한국어 기억 게임</Text>
-          <Text style={[styles.gameDesc, { fontSize: 14 * fontScale }]}>단어를 기억하고 자모를 눌러 맞춰보세요!</Text>
+          <Text style={[styles.gameDesc, { fontSize: 14 * fontScale }]}>
+            단어를 기억하고 자모를 눌러 맞춰보세요!
+          </Text>
         </View>
       </TouchableOpacity>
 
+      {/* 카드 맞추기 게임 (추가됨) */}
+      <TouchableOpacity
+        style={styles.gameCard}
+        onPress={() => router.push('/minigames/memorygame')}
+      >
+        <Text style={{ fontSize: 40 * fontScale }}>🧩</Text>
+        <View style={styles.gameInfo}>
+          <Text style={[styles.gameName, { fontSize: 20 * fontScale }]}>카드 맞추기</Text>
+          <Text style={[styles.gameDesc, { fontSize: 14 * fontScale }]}>
+            카드를 뒤집어 같은 그림을 찾아보세요!
+          </Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* 퀴즈 */}
       <TouchableOpacity
         style={styles.gameCard}
         onPress={() => router.push('/(tabs)/quiz')}
@@ -32,14 +50,19 @@ export default function MinigameScreen() {
         <Text style={{ fontSize: 40 * fontScale }}>🧠</Text>
         <View style={styles.gameInfo}>
           <Text style={[styles.gameName, { fontSize: 20 * fontScale }]}>오늘의 퀴즈</Text>
-          <Text style={[styles.gameDesc, { fontSize: 14 * fontScale }]}>10문제를 풀고 틀린 문제를 재도전해보세요!</Text>
+          <Text style={[styles.gameDesc, { fontSize: 14 * fontScale }]}>
+            10문제를 풀고 틀린 문제를 재도전해보세요!
+          </Text>
         </View>
       </TouchableOpacity>
 
+      {/* 준비 중 게임들 */}
       <View style={[styles.gameCard, styles.gameCardDisabled]}>
-        <Text style={{ fontSize: 40 * fontScale }}>🧩</Text>
+        <Text style={{ fontSize: 40 * fontScale }}>🔢</Text>
         <View style={styles.gameInfo}>
-          <Text style={[styles.gameName, { fontSize: 20 * fontScale, color: '#BDBDBD' }]}>숫자 기억 게임</Text>
+          <Text style={[styles.gameName, { fontSize: 20 * fontScale, color: '#BDBDBD' }]}>
+            숫자 기억 게임
+          </Text>
           <Text style={[styles.gameDesc, { fontSize: 14 * fontScale }]}>준비 중이에요!</Text>
         </View>
       </View>
@@ -47,7 +70,9 @@ export default function MinigameScreen() {
       <View style={[styles.gameCard, styles.gameCardDisabled]}>
         <Text style={{ fontSize: 40 * fontScale }}>🎯</Text>
         <View style={styles.gameInfo}>
-          <Text style={[styles.gameName, { fontSize: 20 * fontScale, color: '#BDBDBD' }]}>색깔 맞추기</Text>
+          <Text style={[styles.gameName, { fontSize: 20 * fontScale, color: '#BDBDBD' }]}>
+            색깔 맞추기
+          </Text>
           <Text style={[styles.gameDesc, { fontSize: 14 * fontScale }]}>준비 중이에요!</Text>
         </View>
       </View>
@@ -56,14 +81,57 @@ export default function MinigameScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#C2E7BB', padding: 22, paddingTop: 64 },
+  container: {
+    flex: 1,
+    backgroundColor: '#C2E7BB',
+    padding: 22,
+    paddingTop: 64,
+  },
   backButton: { marginBottom: 16 },
   backButtonText: { color: '#2D6A4F', fontWeight: '600' },
-  title: { fontWeight: '700', color: '#212121', marginBottom: 8, textAlign: 'center' },
-  subtitle: { color: '#666', textAlign: 'center', marginBottom: 32 },
-  gameCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 16, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
-  gameCardDisabled: { opacity: 0.5 },
-  gameInfo: { flex: 1 },
-  gameName: { fontWeight: '700', color: '#212121', marginBottom: 4 },
-  gameDesc: { color: '#9E9E9E' },
+
+  title: {
+    fontWeight: '700',
+    color: '#212121',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+
+  gameCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+
+  gameCardDisabled: {
+    opacity: 0.5,
+  },
+
+  gameInfo: {
+    flex: 1,
+  },
+
+  gameName: {
+    fontWeight: '700',
+    color: '#212121',
+    marginBottom: 4,
+  },
+
+  gameDesc: {
+    color: '#9E9E9E',
+  },
 });

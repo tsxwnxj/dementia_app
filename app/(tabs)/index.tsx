@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { getTodaySessionCount, getUserProgress, getLastSessionTime, getTodaySpeakCount } from '../../services/firestore';
+import { getTodaySessionCount, getUserProgress, getLastSessionTime } from '../../services/firestore';
 import { auth } from '../../services/firebase';
 import { useFontSize } from '../../context/FontSizeContext';
 
@@ -20,7 +20,6 @@ export default function HomeScreen() {
   const [sessionCount, setSessionCount] = useState<number>(0);
   const [streak, setStreak] = useState<number>(0);
   const [todayTip, setTodayTip] = useState<string>('');
-  const [speakCount, setSpeakCount] = useState<number>(0);
   const [walkDone, setWalkDone] = useState<boolean>(false);
 
   useFocusEffect(
@@ -30,10 +29,8 @@ export default function HomeScreen() {
         try {
           const count = await getTodaySessionCount();
           const progress = await getUserProgress();
-          const speak = await getTodaySpeakCount();
           setSessionCount(count);
           setStreak(progress.streak ?? 0);
-          setSpeakCount(speak);
         } catch (e) {
           console.error(e);
         }
@@ -60,7 +57,7 @@ export default function HomeScreen() {
 
           Alert.alert(
             '잠깐만요! 🧠',
-            `${timeStr} 이후에 하면 뇌 건강에 더 효과적이에요!`,
+            `지금은 연습모드만 가능해요! 오후에 다시 시도해 주세요`,
             [
               { text: '나중에 하기', style: 'cancel' },
               {
@@ -80,84 +77,68 @@ export default function HomeScreen() {
   };
 
   const isDone = sessionCount >= 2;
-  const speakDone = speakCount >= 2;
-  const totalDone = (isDone ? 1 : 0) + (walkDone ? 1 : 0) + (speakDone ? 1 : 0);
-
-  const getCountLabel = (count: number) => {
-    if (count === 0) return '';
-    if (count === 1) return '1 / 2';
-    return '2 / 2';
-  };
+  const totalDone = (isDone ? 1 : 0) + (walkDone ? 1 : 0);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
       <Text style={[styles.greeting, { fontSize: 34 * fontScale }]}>오늘의 두뇌 훈련</Text>
 
-      <View style={styles.streakCard}>
-        <Text style={[styles.streakEmoji, { fontSize: 40 * fontScale }]}>🔥</Text>
-        <View>
-          <Text style={[styles.streakCount, { fontSize: 26 * fontScale }]}>{streak}일 연속</Text>
-          <Text style={[styles.streakSub, { fontSize: 18 * fontScale }]}>꾸준히 하고 있어요!</Text>
-        </View>
-      </View>
-
-      <View style={styles.progressCard}>
-        <Text style={[styles.progressLabel, { fontSize: 18 * fontScale }]}>일일 퀘스트</Text>
-        <Text style={[styles.progressCount, { fontSize: 38 * fontScale }]}>{totalDone} / 3</Text>
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${Math.min((totalDone / 3) * 100, 100)}%` }]} />
-        </View>
-      </View>
-
-      <View style={styles.questRow}>
-        <TouchableOpacity
-          style={[styles.questBtn, isDone && styles.questBtnDone]}
-          onPress={handleStartExercise}
-          disabled={isDone}
-        >
-          <Text style={{ fontSize: 28 * fontScale }}>🖐️</Text>
-          <Text style={[styles.questLabel, { fontSize: 13 * fontScale }]}>손 운동</Text>
-          <Text style={[styles.questCount, { fontSize: 13 * fontScale }]}>
-            {isDone ? '✅' : sessionCount === 1 ? '1 / 2' : ''}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.questBtn, walkDone && styles.questBtnDone]}
-          disabled={walkDone}
-          onPress={() => router.push('/WalkScreen/WalkScreen')}
-        >
-          <Text style={{ fontSize: 28 * fontScale }}>🚶</Text>
-          <Text style={[styles.questLabel, { fontSize: 13 * fontScale }]}>산책하기</Text>
-          <Text style={[styles.questCount, { fontSize: 13 * fontScale }]}>
-            {walkDone ? '✅' : ''}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.questBtn, speakDone && styles.questBtnDone]}
-          disabled={speakDone}
-          onPress={() => Alert.alert('말하기 퀘스트', '준비 중이에요! 🎤')}
-        >
-          <Text style={{ fontSize: 28 * fontScale }}>🎤</Text>
-          <Text style={[styles.questLabel, { fontSize: 13 * fontScale }]}>말하기</Text>
-          <Text style={[styles.questCount, { fontSize: 13 * fontScale }]}>
-            {getCountLabel(speakCount)}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
+      {/* 건강 팁 */}
       <View style={styles.tipCard}>
         <Text style={[styles.tipTitle, { fontSize: 20 * fontScale }]}>💡 오늘의 건강 팁</Text>
         <Text style={[styles.tipText, { fontSize: 19 * fontScale }]}>{todayTip}</Text>
       </View>
 
+      {/* 상단 카드 */}
+      <View style={styles.topRow}>
+
+        <View style={[styles.streakCard, styles.half, styles.smallStreak, styles.uniformCard]}>
+          <Text style={[styles.streakEmoji, { fontSize: 40 * fontScale }]}>🔥</Text>
+          <Text style={[styles.streakCount, { fontSize: 26 * fontScale }]}>{streak}일 연속</Text>
+          <Text style={[styles.streakSub, { fontSize: 18 * fontScale }]}>파이팅!</Text>
+        </View>
+
+        <View style={[styles.progressCard, styles.half, styles.uniformCard]}>
+          <Text style={[styles.progressLabel, { fontSize: 18 * fontScale }]}>일일 퀘스트</Text>
+          <Text style={[styles.progressCount, { fontSize: 38 * fontScale }]}>{totalDone} / 2</Text>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${Math.min((totalDone / 2) * 100, 100)}%` }]} />
+          </View>
+        </View>
+
+      </View>
+
+      {/* 손 운동 */}
       <TouchableOpacity
-        style={styles.minigameBtn}
+        style={[styles.questCard, isDone && styles.questBtnDone]}
+        onPress={handleStartExercise}
+        disabled={isDone}
+      >
+        <Text style={{ fontSize: 22 * fontScale }}>🖐️ 손 운동</Text>
+        <Text style={styles.questCount}>
+          {isDone ? '✅' : sessionCount === 1 ? '1 / 2' : ''}
+        </Text>
+      </TouchableOpacity>
+
+      {/* 산책 */}
+      <TouchableOpacity
+        style={[styles.questCard, walkDone && styles.questBtnDone]}
+        disabled={walkDone}
+        onPress={() => router.push('/WalkScreen/WalkScreen')}
+      >
+        <Text style={{ fontSize: 22 * fontScale }}>🚶 산책하기</Text>
+        <Text style={styles.questCount}>
+          {walkDone ? '✅' : ''}
+        </Text>
+      </TouchableOpacity>
+
+      {/* 미니게임 (스타일 통일) */}
+      <TouchableOpacity
+        style={styles.questCard}
         onPress={() => router.push('/(tabs)/minigame')}
       >
-        <Text style={[styles.minigameBtnText, { fontSize: 20 * fontScale }]}>🎮 미니게임</Text>
+        <Text style={{ fontSize: 22 * fontScale }}>🎮 미니게임</Text>
       </TouchableOpacity>
 
     </ScrollView>
@@ -166,24 +147,85 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#C2E7BB', padding: 22, paddingTop: 64 },
-  greeting: { fontWeight: '700', color: '#212121', marginBottom: 20, textAlign: 'center', letterSpacing: -1 },
-  streakCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
+  greeting: { fontWeight: '700', color: '#212121', marginBottom: 20, textAlign: 'center' },
+
+  topRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 14,
+  },
+
+  half: {
+    flex: 1,
+  },
+
+  smallStreak: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  uniformCard: {
+    minHeight: 150,
+  },
+
+  streakCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    elevation: 5,
+  },
+
   streakEmoji: { marginRight: 14 },
   streakCount: { fontWeight: '700', color: '#E65100' },
   streakSub: { fontWeight: '600', color: '#FF6D00', marginTop: 2 },
-  progressCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
-  progressLabel: { fontWeight: '700', color: '#000', marginBottom: 8 },
+
+  progressCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    elevation: 5,
+  },
+
+  progressLabel: { fontWeight: '700', marginBottom: 8 },
   progressCount: { fontWeight: '700', color: '#4DA56F', marginBottom: 14 },
-  progressBar: { height: 12, backgroundColor: '#E3F2FD', borderRadius: 6, overflow: 'hidden' },
+  progressBar: { height: 12, backgroundColor: '#E3F2FD', borderRadius: 6 },
   progressFill: { height: '100%', backgroundColor: '#4A90E2', borderRadius: 6 },
-  questRow: { flexDirection: 'row', gap: 12, marginBottom: 14 },
-  questBtn: { flex: 1, backgroundColor: '#fff', borderRadius: 20, paddingVertical: 16, alignItems: 'center', gap: 4, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
-  questBtnDone: { backgroundColor: '#E8F5E9', borderWidth: 2, borderColor: '#4DA56F' },
-  questLabel: { color: '#424242', fontWeight: '600', textAlign: 'center' },
-  questCount: { color: '#4DA56F', fontWeight: '700' },
-  tipCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 5, height: 5 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 5 },
-  tipTitle: { fontWeight: '700', color: '#000', marginBottom: 10 },
-  tipText: { color: '#000', lineHeight: 28 },
-  minigameBtn: { backgroundColor: '#4DA56F', padding: 20, borderRadius: 36, alignItems: 'center', marginBottom: 40 },
-  minigameBtnText: { color: '#fff', fontWeight: '700' },
+
+  questCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24, // 🔥 키움
+    minHeight: 110, // 🔥 키움
+    marginBottom: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 5,
+  },
+
+  questBtnDone: {
+    backgroundColor: '#E8F5E9',
+    borderWidth: 2,
+    borderColor: '#4DA56F',
+  },
+
+  questCount: {
+    color: '#4DA56F',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+
+  tipCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 14,
+    elevation: 5,
+  },
+
+  tipTitle: { fontWeight: '700', marginBottom: 10 },
+  tipText: { lineHeight: 28 },
 });
