@@ -10,14 +10,14 @@ PODS:
     - GoogleUtilities/Environment (~> 8.0)
     - GoogleUtilities/UserDefaults (~> 8.0)
     - PromisesObjC (~> 2.4)
-  - EXApplication (55.0.10):
+  - EXApplication (55.0.14):
     - ExpoModulesCore
-  - EXConstants (55.0.9):
+  - EXConstants (55.0.15):
     - ExpoModulesCore
   - EXJSONUtils (55.0.0)
   - EXManifests (55.0.9):
     - ExpoModulesCore
-  - Expo (55.0.6):
+  - Expo (55.0.13):
     - ExpoModulesCore
     - hermes-engine
     - RCTRequired
@@ -196,17 +196,17 @@ PODS:
     - React-Core
   - ExpoAppleAuthentication (55.0.11):
     - ExpoModulesCore
-  - ExpoAsset (55.0.10):
+  - ExpoAsset (55.0.14):
     - ExpoModulesCore
   - ExpoCamera (55.0.9):
     - ExpoModulesCore
     - ZXingObjC/OneD
     - ZXingObjC/PDF417
-  - ExpoDomWebView (55.0.3):
+  - ExpoDomWebView (55.0.5):
     - ExpoModulesCore
-  - ExpoFileSystem (55.0.11):
+  - ExpoFileSystem (55.0.16):
     - ExpoModulesCore
-  - ExpoFont (55.0.4):
+  - ExpoFont (55.0.6):
     - ExpoModulesCore
   - ExpoGlassEffect (55.0.8):
     - ExpoModulesCore
@@ -217,13 +217,15 @@ PODS:
     - SDWebImageAVIFCoder (~> 0.11.0)
     - SDWebImageSVGCoder (~> 1.7.0)
     - SDWebImageWebPCoder (~> 0.14.6)
-  - ExpoKeepAwake (55.0.4):
+  - ExpoKeepAwake (55.0.6):
     - ExpoModulesCore
-  - ExpoLinking (55.0.7):
+  - ExpoLinking (55.0.14):
+    - ExpoModulesCore
+  - ExpoLocation (55.1.9):
     - ExpoModulesCore
   - ExpoLogBox (55.0.7):
     - React-Core
-  - ExpoModulesCore (55.0.15):
+  - ExpoModulesCore (55.0.22):
     - ExpoModulesJSI
     - hermes-engine
     - RCTRequired
@@ -247,12 +249,12 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - ExpoModulesJSI (55.0.15):
+  - ExpoModulesJSI (55.0.22):
     - hermes-engine
     - React-Core
     - React-runtimescheduler
     - ReactCommon
-  - ExpoNotifications (55.0.14):
+  - ExpoNotifications (55.0.22):
     - ExpoModulesCore
   - ExpoRouter (55.0.5):
     - ExpoModulesCore
@@ -284,6 +286,9 @@ PODS:
     - ExpoModulesCore
   - ExpoSymbols (55.0.5):
     - ExpoModulesCore
+  - ExpoTaskManager (55.0.15):
+    - ExpoModulesCore
+    - UMAppLoader
   - EXUpdatesInterface (55.1.3):
     - ExpoModulesCore
   - FBLazyVector (0.83.2)
@@ -2407,6 +2412,7 @@ PODS:
   - SDWebImageWebPCoder (0.14.6):
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.17)
+  - UMAppLoader (55.0.5)
   - VisionCamera (4.7.3):
     - VisionCamera/Core (= 4.7.3)
     - VisionCamera/FrameProcessors (= 4.7.3)
@@ -2447,6 +2453,7 @@ DEPENDENCIES:
   - ExpoImage (from `../node_modules/expo-image/ios`)
   - ExpoKeepAwake (from `../node_modules/expo-keep-awake/ios`)
   - ExpoLinking (from `../node_modules/expo-linking/ios`)
+  - ExpoLocation (from `../node_modules/expo-location/ios`)
   - "ExpoLogBox (from `../node_modules/@expo/log-box`)"
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoModulesJSI (from `../node_modules/expo-modules-core`)
@@ -2455,6 +2462,7 @@ DEPENDENCIES:
   - ExpoScreenOrientation (from `../node_modules/expo-screen-orientation/ios`)
   - ExpoSecureStore (from `../node_modules/expo-secure-store/ios`)
   - ExpoSymbols (from `../node_modules/expo-symbols/ios`)
+  - ExpoTaskManager (from `../node_modules/expo-task-manager/ios`)
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - GestureRecognition (from `../modules/gesture-recognition/ios`)
@@ -2539,6 +2547,7 @@ DEPENDENCIES:
   - "RNCKakaoUser (from `../node_modules/@react-native-kakao/user`)"
   - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
   - RNScreens (from `../node_modules/react-native-screens`)
+  - UMAppLoader (from `../node_modules/unimodules-app-loader/ios`)
   - VisionCamera (from `../node_modules/react-native-vision-camera`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
@@ -2607,6 +2616,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-keep-awake/ios"
   ExpoLinking:
     :path: "../node_modules/expo-linking/ios"
+  ExpoLocation:
+    :path: "../node_modules/expo-location/ios"
   ExpoLogBox:
     :path: "../node_modules/@expo/log-box"
   ExpoModulesCore:
@@ -2623,6 +2634,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-secure-store/ios"
   ExpoSymbols:
     :path: "../node_modules/expo-symbols/ios"
+  ExpoTaskManager:
+    :path: "../node_modules/expo-task-manager/ios"
   EXUpdatesInterface:
     :path: "../node_modules/expo-updates-interface/ios"
   FBLazyVector:
@@ -2790,6 +2803,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-google-signin/google-signin"
   RNScreens:
     :path: "../node_modules/react-native-screens"
+  UMAppLoader:
+    :path: "../node_modules/unimodules-app-loader/ios"
   VisionCamera:
     :path: "../node_modules/react-native-vision-camera"
   Yoga:
@@ -2799,34 +2814,36 @@ SPEC CHECKSUMS:
   Alamofire: f36a35757af4587d8e4f4bfa223ad10be2422b8c
   AppAuth: 1c1a8afa7e12f2ec3a294d9882dfa5ab7d3cb063
   AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
-  EXApplication: 83fdeb8d9e911c28c9dda8c71ae7a697278ce810
-  EXConstants: 898c24a310046c0e68335619d0f379099a52e199
+  EXApplication: ab5a9ca485adce8be81309a5172d1565e9d7467f
+  EXConstants: 5caf448ff399f60be9d1053e77aed32e39411900
   EXJSONUtils: 0080c14b673cfa9a6be5e3fe429768ffe3d42dfb
   EXManifests: 2b53302deb6d7275ae26005b8014f5a1aee42a0e
-  Expo: 9a502b466698a5e33c0ba6b749ef50d7f8a02477
+  Expo: 19505bccb8d109c4b389ee65ce20a503611fcd3b
   expo-dev-client: d8a4157de0889a8b429788323520a9873973ddb3
   expo-dev-launcher: 681b320210301de9be0d625f3c399841570e1d3c
   expo-dev-menu: 6eb76803513cd6c6231d680d331861de816fb1db
   expo-dev-menu-interface: bf6f816d29b45bec038080790963c635e8d588c2
   ExpoAdapterGoogleSignIn: ab4d9fc38cb91077a4138d178395525ec65d0c2e
   ExpoAppleAuthentication: 4d1611362b8f42c3ac09ecefedee4c372c0f2ce7
-  ExpoAsset: 4efd0227e808dfa84d286aa3663ded641ef73479
+  ExpoAsset: 6b2936edf301b6a0db65bb0c8ba09dbe0816981e
   ExpoCamera: bf0ce92035d27e22103bc7cad38e348c6ce2ffd3
-  ExpoDomWebView: f101fb3db4b6eec4163fca51f7507189b7e48661
-  ExpoFileSystem: ccbe192dde132e6e97bedcd51018a1642f4fa01c
-  ExpoFont: 1aa465cf9f8ac6b670405becba8b15473581b2dd
+  ExpoDomWebView: 2b2fbd9a07de8790569257cbf9dfdaa31cf95c70
+  ExpoFileSystem: 310d367cccbd30b9bda13c5865fe3d8d581dcf2a
+  ExpoFont: cdd7a1d574a376fa003c713eff49e0a4df8672c7
   ExpoGlassEffect: 42361543f2c0c383df0cb779e3cd2496b47a585e
   ExpoImage: 53ab717157f29bb5139f9f75b259f93f784b6847
-  ExpoKeepAwake: 7f3b28c361c37389b18841bb52a58003b39fcb33
-  ExpoLinking: 88ba36a28c83525e564b8229e02d451347accb70
+  ExpoKeepAwake: a1baf9810a2dee1905aa9bdd336852598f7220e9
+  ExpoLinking: f9e01f5182f2653ea9d90f18fb47f1913e2f99ef
+  ExpoLocation: 2eb121e655cc08a1fc34bc84e8429c0f216c83ec
   ExpoLogBox: 89b634d5a8a64c4a6a7caad8f9985a28463c7002
-  ExpoModulesCore: b40499585cec5bfd14d45ce04f0c42d3d2ec22bb
-  ExpoModulesJSI: 46dab6c6d9e181bf94757367a0d569bfc7fffd99
-  ExpoNotifications: 0e3b12306933444ca6030782eaa0b1b015ee3b42
+  ExpoModulesCore: 04cfca35843acea9499480d2c6fa7369831c66ab
+  ExpoModulesJSI: 4f9a951679fdfbfca1e4feb5c1e10df045333a5a
+  ExpoNotifications: f5c15fdabb5cc3168c20cf49b6551a9d46304657
   ExpoRouter: 5b4f8428745799125d02d66896b7e6e680e077c6
   ExpoScreenOrientation: 0dd289f8cee46e2617f0d2a5114bac36ca3c112a
   ExpoSecureStore: ebb13e5e590b1e62ec530bd0cfe1a3e7f1867e26
   ExpoSymbols: 3d67a96643245a5d933ce7fbf535f95eb541f617
+  ExpoTaskManager: 7c2660c3c0bd0ed863e1536e59e11b71ac1490c6
   EXUpdatesInterface: d48f288b92900bd95a27c6cf92a7b9aff826d49a
   FBLazyVector: 32e9ed0301d0fcbc1b2b341dd7fcbf291f51eb83
   GestureRecognition: 4d60c259a4f722fd44371e6cc34aa1038f1b5707
@@ -2834,7 +2851,7 @@ SPEC CHECKSUMS:
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   GTMAppAuth: 217a876b249c3c585a54fd6f73e6b58c4f5c4238
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
-  hermes-engine: e589a2d3d8704a24afb36d6af809d8e35e6a4703
+  hermes-engine: b8a640cb3ddcbbcda0bf7aa366605d998060f4ba
   KakaoSDKAuth: 569b377eda622d93d4575240b8031cd658163eef
   KakaoSDKCommon: d57127c339fc79e73aa8b236a4c77211c29924f1
   KakaoSDKUser: 043bcd7e91454ebf3bf64f150c430e6f65f0a08d
@@ -2852,7 +2869,7 @@ SPEC CHECKSUMS:
   React: f4edc7518ccb0b54a6f580d89dd91471844b4990
   React-callinvoker: 79ef4e3f1c021571f6d2dafbe45ca432b2f3a146
   React-Core: c19ad4660fd48bc8abc060d979f8ee37f1fc4a5a
-  React-Core-prebuilt: 280467c8ee28627138e175201624d4e5c7b6a059
+  React-Core-prebuilt: d7246a829461b79f470a243708764695433e41b9
   React-CoreModules: f94ec3ee2bac588d033ad15a2377af746284f8c8
   React-cxxreact: de66364f2d5fb77d3da3cfa927b2fd960892c711
   React-debug: 4f6739c820d7da9c20f48caa985573b6a847e5f5
@@ -2917,7 +2934,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: d69159b417e8c9d82b8fe4d0a27def4c3e8f767f
   ReactCodegen: e67cb698a2107da1da9efa55174861d724666a3e
   ReactCommon: 8868269b67561136a7970be188b40738135af077
-  ReactNativeDependencies: 1186b9ae6db50688411c17e23698bcbcf50a46d0
+  ReactNativeDependencies: 6c0d2d14dda0766aedc491b664db3fb5b811a278
   RNCAsyncStorage: 3a4f5e2777dae1688b781a487923a08569e27fe4
   RNCKakaoCore: b546a16131ed2f6c71fbffeca6eb13650fc036c0
   RNCKakaoUser: 19c442e597ea7e52d32103183b220160bfabeb4d
@@ -2927,10 +2944,11 @@ SPEC CHECKSUMS:
   SDWebImageAVIFCoder: afe194a084e851f70228e4be35ef651df0fc5c57
   SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
+  UMAppLoader: 045699ef1cc6afda399a5c78bde728f23bcce213
   VisionCamera: 0044a94f7489f19e19d5938e97dfc36f4784af3c
   Yoga: dd994d8c85dca5cc9b10f5df8c01f9ef1d0da191
   ZXingObjC: 8898711ab495761b2dbbdec76d90164a6d7e14c5
 
-PODFILE CHECKSUM: 15951c7d7e30cd331b99fae598f8d015b49a7dee
+PODFILE CHECKSUM: 995688c0d93a897a363b48a75c7e7b110d4368ca
 
 COCOAPODS: 1.16.2
