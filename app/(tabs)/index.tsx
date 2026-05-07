@@ -49,12 +49,6 @@ export default function HomeScreen() {
         const twoHoursLater = new Date(lastSessionTime.getTime() + 2 * 60 * 60 * 1000);
         const now = new Date();
         if (now < twoHoursLater && sessionCount === 1) {
-          const hours = twoHoursLater.getHours();
-          const minutes = twoHoursLater.getMinutes().toString().padStart(2, '0');
-          const period = hours < 12 ? '오전' : '오후';
-          const displayHour = hours > 12 ? hours - 12 : hours;
-          const timeStr = `${period} ${displayHour}시 ${minutes}분`;
-
           Alert.alert(
             '잠깐만요! 🧠',
             `지금은 연습모드만 가능해요! 오후에 다시 시도해 주세요`,
@@ -92,8 +86,7 @@ export default function HomeScreen() {
 
       {/* 상단 카드 */}
       <View style={styles.topRow}>
-
-        <View style={[styles.streakCard, styles.half, styles.smallStreak, styles.uniformCard]}>
+        <View style={[styles.streakCard, styles.half, styles.uniformCard]}>
           <Text style={[styles.streakEmoji, { fontSize: 40 * fontScale }]}>🔥</Text>
           <Text style={[styles.streakCount, { fontSize: 26 * fontScale }]}>{streak}일 연속</Text>
           <Text style={[styles.streakSub, { fontSize: 18 * fontScale }]}>파이팅!</Text>
@@ -106,7 +99,6 @@ export default function HomeScreen() {
             <View style={[styles.progressFill, { width: `${Math.min((totalDone / 2) * 100, 100)}%` }]} />
           </View>
         </View>
-
       </View>
 
       {/* 손 운동 */}
@@ -115,7 +107,7 @@ export default function HomeScreen() {
         onPress={handleStartExercise}
         disabled={isDone}
       >
-        <Text style={{ fontSize: 22 * fontScale }}>🖐️ 손 운동</Text>
+        <Text style={[styles.questCardText, { fontSize: 22 * fontScale }]}>🖐️ 손 운동</Text>
         <Text style={styles.questCount}>
           {isDone ? '✅' : sessionCount === 1 ? '1 / 2' : ''}
         </Text>
@@ -127,18 +119,18 @@ export default function HomeScreen() {
         disabled={walkDone}
         onPress={() => router.push('/WalkScreen/WalkScreen')}
       >
-        <Text style={{ fontSize: 22 * fontScale }}>🚶 산책하기</Text>
+        <Text style={[styles.questCardText, { fontSize: 22 * fontScale }]}>🚶 산책하기</Text>
         <Text style={styles.questCount}>
           {walkDone ? '✅' : ''}
         </Text>
       </TouchableOpacity>
 
-      {/* 미니게임 (스타일 통일) */}
+      {/* 미니게임 */}
       <TouchableOpacity
         style={styles.questCard}
         onPress={() => router.push('/(tabs)/minigame')}
       >
-        <Text style={{ fontSize: 22 * fontScale }}>🎮 미니게임</Text>
+        <Text style={[styles.questCardText, { fontSize: 22 * fontScale }]}>🎮 미니게임</Text>
       </TouchableOpacity>
 
     </ScrollView>
@@ -149,83 +141,73 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#C2E7BB', padding: 22, paddingTop: 64 },
   greeting: { fontWeight: '700', color: '#212121', marginBottom: 20, textAlign: 'center' },
 
-  topRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 14,
-  },
-
-  half: {
-    flex: 1,
-  },
-
-  smallStreak: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  uniformCard: {
-    minHeight: 150,
-  },
+  topRow: { flexDirection: 'row', gap: 12, marginBottom: 14 },
+  half: { flex: 1 },
+  uniformCard: { minHeight: 150 },
 
   streakCard: {
     backgroundColor: '#fff',
     borderRadius: 20,
     padding: 20,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
     elevation: 5,
   },
-
-  streakEmoji: { marginRight: 14 },
-  streakCount: { fontWeight: '700', color: '#E65100' },
-  streakSub: { fontWeight: '600', color: '#FF6D00', marginTop: 2 },
+  streakEmoji: { marginBottom: 6 },
+  streakCount: { fontWeight: '700', color: '#E65100', textAlign: 'center' },
+  streakSub: { fontWeight: '600', color: '#FF6D00', marginTop: 2, textAlign: 'center' },
 
   progressCard: {
     backgroundColor: '#fff',
     borderRadius: 20,
     padding: 20,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
     elevation: 5,
   },
-
   progressLabel: { fontWeight: '700', marginBottom: 8 },
   progressCount: { fontWeight: '700', color: '#4DA56F', marginBottom: 14 },
-  progressBar: { height: 12, backgroundColor: '#E3F2FD', borderRadius: 6 },
+  progressBar: { height: 12, backgroundColor: '#E3F2FD', borderRadius: 6, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: '#4A90E2', borderRadius: 6 },
 
   questCard: {
     backgroundColor: '#fff',
     borderRadius: 20,
-    padding: 24, // 🔥 키움
-    minHeight: 110, // 🔥 키움
+    padding: 24,
+    minHeight: 110,
     marginBottom: 14,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
     elevation: 5,
   },
-
-  questBtnDone: {
-    backgroundColor: '#E8F5E9',
-    borderWidth: 2,
-    borderColor: '#4DA56F',
-  },
-
-  questCount: {
-    color: '#4DA56F',
-    fontWeight: '700',
-    fontSize: 16,
-  },
+  questCardText: { fontWeight: '700', color: '#212121', textAlign: 'center' },
+  questBtnDone: { backgroundColor: '#E8F5E9', borderWidth: 2, borderColor: '#4DA56F' },
+  questCount: { color: '#4DA56F', fontWeight: '700', fontSize: 16, position: 'absolute', right: 24 },
 
   tipCard: {
     backgroundColor: '#fff',
     borderRadius: 20,
     padding: 20,
     marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 5, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
     elevation: 5,
   },
-
   tipTitle: { fontWeight: '700', marginBottom: 10 },
   tipText: { lineHeight: 28 },
 });
