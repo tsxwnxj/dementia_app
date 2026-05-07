@@ -50,7 +50,6 @@
       "expo-notifications",
       "./plugins/withGestureModel",
       "expo-apple-authentication",
-      
       [
         "expo-location",
         {
@@ -71,7 +70,8 @@
         {
           "nativeAppKey": "e762d1d9bb4d6747b68bef981907a99a"
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "assetBundlePatterns": [
       "assets/**"
