@@ -198,6 +198,8 @@ PODS:
     - ExpoModulesCore
   - ExpoAsset (55.0.14):
     - ExpoModulesCore
+  - ExpoAudio (55.0.14):
+    - ExpoModulesCore
   - ExpoCamera (55.0.9):
     - ExpoModulesCore
     - ZXingObjC/OneD
@@ -217,6 +219,8 @@ PODS:
     - SDWebImageAVIFCoder (~> 0.11.0)
     - SDWebImageSVGCoder (~> 1.7.0)
     - SDWebImageWebPCoder (~> 0.14.6)
+  - ExpoImagePicker (55.0.20):
+    - ExpoModulesCore
   - ExpoKeepAwake (55.0.6):
     - ExpoModulesCore
   - ExpoLinking (55.0.14):
@@ -283,6 +287,8 @@ PODS:
     - ReactNativeDependencies
     - Yoga
   - ExpoSecureStore (55.0.8):
+    - ExpoModulesCore
+  - ExpoSpeech (55.0.13):
     - ExpoModulesCore
   - ExpoSymbols (55.0.5):
     - ExpoModulesCore
@@ -2445,12 +2451,14 @@ DEPENDENCIES:
   - "ExpoAdapterGoogleSignIn (from `../node_modules/@react-native-google-signin/google-signin/expo/ios`)"
   - ExpoAppleAuthentication (from `../node_modules/expo-apple-authentication/ios`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
+  - ExpoAudio (from `../node_modules/expo-audio/ios`)
   - ExpoCamera (from `../node_modules/expo-camera/ios`)
   - "ExpoDomWebView (from `../node_modules/@expo/dom-webview/ios`)"
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
   - ExpoFont (from `../node_modules/expo-font/ios`)
   - ExpoGlassEffect (from `../node_modules/expo-glass-effect/ios`)
   - ExpoImage (from `../node_modules/expo-image/ios`)
+  - ExpoImagePicker (from `../node_modules/expo-image-picker/ios`)
   - ExpoKeepAwake (from `../node_modules/expo-keep-awake/ios`)
   - ExpoLinking (from `../node_modules/expo-linking/ios`)
   - ExpoLocation (from `../node_modules/expo-location/ios`)
@@ -2461,6 +2469,7 @@ DEPENDENCIES:
   - ExpoRouter (from `../node_modules/expo-router/ios`)
   - ExpoScreenOrientation (from `../node_modules/expo-screen-orientation/ios`)
   - ExpoSecureStore (from `../node_modules/expo-secure-store/ios`)
+  - ExpoSpeech (from `../node_modules/expo-speech/ios`)
   - ExpoSymbols (from `../node_modules/expo-symbols/ios`)
   - ExpoTaskManager (from `../node_modules/expo-task-manager/ios`)
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
@@ -2600,6 +2609,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-apple-authentication/ios"
   ExpoAsset:
     :path: "../node_modules/expo-asset/ios"
+  ExpoAudio:
+    :path: "../node_modules/expo-audio/ios"
   ExpoCamera:
     :path: "../node_modules/expo-camera/ios"
   ExpoDomWebView:
@@ -2612,6 +2623,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-glass-effect/ios"
   ExpoImage:
     :path: "../node_modules/expo-image/ios"
+  ExpoImagePicker:
+    :path: "../node_modules/expo-image-picker/ios"
   ExpoKeepAwake:
     :path: "../node_modules/expo-keep-awake/ios"
   ExpoLinking:
@@ -2632,6 +2645,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-screen-orientation/ios"
   ExpoSecureStore:
     :path: "../node_modules/expo-secure-store/ios"
+  ExpoSpeech:
+    :path: "../node_modules/expo-speech/ios"
   ExpoSymbols:
     :path: "../node_modules/expo-symbols/ios"
   ExpoTaskManager:
@@ -2826,12 +2841,14 @@ SPEC CHECKSUMS:
   ExpoAdapterGoogleSignIn: ab4d9fc38cb91077a4138d178395525ec65d0c2e
   ExpoAppleAuthentication: 4d1611362b8f42c3ac09ecefedee4c372c0f2ce7
   ExpoAsset: 6b2936edf301b6a0db65bb0c8ba09dbe0816981e
+  ExpoAudio: a826903abdeba843cde8602bd1c077d808b31f1d
   ExpoCamera: bf0ce92035d27e22103bc7cad38e348c6ce2ffd3
   ExpoDomWebView: 2b2fbd9a07de8790569257cbf9dfdaa31cf95c70
   ExpoFileSystem: 310d367cccbd30b9bda13c5865fe3d8d581dcf2a
   ExpoFont: cdd7a1d574a376fa003c713eff49e0a4df8672c7
   ExpoGlassEffect: 42361543f2c0c383df0cb779e3cd2496b47a585e
   ExpoImage: 53ab717157f29bb5139f9f75b259f93f784b6847
+  ExpoImagePicker: 7c75b2f076d6f45598fcbd035908aebc4c2eb257
   ExpoKeepAwake: a1baf9810a2dee1905aa9bdd336852598f7220e9
   ExpoLinking: f9e01f5182f2653ea9d90f18fb47f1913e2f99ef
   ExpoLocation: 2eb121e655cc08a1fc34bc84e8429c0f216c83ec
@@ -2842,6 +2859,7 @@ SPEC CHECKSUMS:
   ExpoRouter: 5b4f8428745799125d02d66896b7e6e680e077c6
   ExpoScreenOrientation: 0dd289f8cee46e2617f0d2a5114bac36ca3c112a
   ExpoSecureStore: ebb13e5e590b1e62ec530bd0cfe1a3e7f1867e26
+  ExpoSpeech: 7f5d4a94aea1fbc509cf4ab2649bc2e3f05ea15e
   ExpoSymbols: 3d67a96643245a5d933ce7fbf535f95eb541f617
   ExpoTaskManager: 7c2660c3c0bd0ed863e1536e59e11b71ac1490c6
   EXUpdatesInterface: d48f288b92900bd95a27c6cf92a7b9aff826d49a
@@ -2851,7 +2869,7 @@ SPEC CHECKSUMS:
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   GTMAppAuth: 217a876b249c3c585a54fd6f73e6b58c4f5c4238
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
-  hermes-engine: b8a640cb3ddcbbcda0bf7aa366605d998060f4ba
+  hermes-engine: e589a2d3d8704a24afb36d6af809d8e35e6a4703
   KakaoSDKAuth: 569b377eda622d93d4575240b8031cd658163eef
   KakaoSDKCommon: d57127c339fc79e73aa8b236a4c77211c29924f1
   KakaoSDKUser: 043bcd7e91454ebf3bf64f150c430e6f65f0a08d
@@ -2869,7 +2887,7 @@ SPEC CHECKSUMS:
   React: f4edc7518ccb0b54a6f580d89dd91471844b4990
   React-callinvoker: 79ef4e3f1c021571f6d2dafbe45ca432b2f3a146
   React-Core: c19ad4660fd48bc8abc060d979f8ee37f1fc4a5a
-  React-Core-prebuilt: d7246a829461b79f470a243708764695433e41b9
+  React-Core-prebuilt: 280467c8ee28627138e175201624d4e5c7b6a059
   React-CoreModules: f94ec3ee2bac588d033ad15a2377af746284f8c8
   React-cxxreact: de66364f2d5fb77d3da3cfa927b2fd960892c711
   React-debug: 4f6739c820d7da9c20f48caa985573b6a847e5f5
@@ -2934,7 +2952,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: d69159b417e8c9d82b8fe4d0a27def4c3e8f767f
   ReactCodegen: e67cb698a2107da1da9efa55174861d724666a3e
   ReactCommon: 8868269b67561136a7970be188b40738135af077
-  ReactNativeDependencies: 6c0d2d14dda0766aedc491b664db3fb5b811a278
+  ReactNativeDependencies: 1186b9ae6db50688411c17e23698bcbcf50a46d0
   RNCAsyncStorage: 3a4f5e2777dae1688b781a487923a08569e27fe4
   RNCKakaoCore: b546a16131ed2f6c71fbffeca6eb13650fc036c0
   RNCKakaoUser: 19c442e597ea7e52d32103183b220160bfabeb4d
