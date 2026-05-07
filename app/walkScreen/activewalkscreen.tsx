@@ -24,12 +24,16 @@ import {
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import * as Speech from 'expo-speech';
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import { useAudioPlayer } from 'expo-audio';
 
 import {
   ChatMessage,
+  endWalkSession,
   fetchWalkGreeting,
   sendWalkChat,
+  WalkStartResult,
 } from '../../services/walkChatService';
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
@@ -83,6 +87,9 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
   const locationSubRef = useRef<Location.LocationSubscription | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
+  const [ttsUri, setTtsUri] = useState<string | undefined>(undefined);
+  const audioPlayer = useAudioPlayer(ttsUri ? { uri: ttsUri } : undefined);
+
   // ── 헬퍼: 메시지 추가 ──────────────────────────────────────────────────────
 
   const addMessage = useCallback((role: ChatMessage['role'], content: string) => {
@@ -90,12 +97,36 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   }, []);
 
-  // ── TTS 재생 ───────────────────────────────────────────────────────────────
+  // ── TTS 재생 — 서버 edge-tts 오디오 우선, 없으면 expo-speech 폴백 ──────────
 
-  const speak = useCallback((text: string) => {
+  const playTTS = useCallback(async (text: string, audio_base64: string | null) => {
+    if (audio_base64) {
+      try {
+        const uri = `${FileSystem.cacheDirectory}tts_${Date.now()}.mp3`;
+        await FileSystem.writeAsStringAsync(uri, audio_base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        setTtsUri(uri);
+        setTimeout(() => audioPlayer.play(), 100);
+        return;
+      } catch {
+        // 폴백으로 내려감
+      }
+    }
+    // expo-speech 폴백 — 문장 단위로 나눠서 순서대로 읽기 (긴 텍스트 잘림 방지)
     Speech.stop();
-    Speech.speak(text, { language: 'ko-KR', rate: 0.9, pitch: 1.0 });
-  }, []);
+    const sentences = text.match(/[^.!?]+[.!?]*/g)?.map(s => s.trim()).filter(Boolean) ?? [text];
+    const speakNext = (idx: number) => {
+      if (idx >= sentences.length) return;
+      Speech.speak(sentences[idx], {
+        language: 'ko-KR',
+        rate: 0.9,
+        pitch: 1.0,
+        onDone: () => speakNext(idx + 1),
+      });
+    };
+    speakNext(0);
+  }, [audioPlayer]);
 
   // ── 산책 시작 인사말 (실외만) ─────────────────────────────────────────────
 
@@ -103,16 +134,16 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
     if (walkType !== 'outdoor') return;
     (async () => {
       try {
-        const greeting = await fetchWalkGreeting(
+        const result: WalkStartResult = await fetchWalkGreeting(
           currentLocation?.latitude,
           currentLocation?.longitude,
         );
-        addMessage('assistant', greeting);
-        speak(greeting);
+        addMessage('assistant', result.message);
+        playTTS(result.message, result.audio_base64);
       } catch {
         const fallback = '반갑습니다! 오늘도 건강한 산책을 시작해 볼까요? 주변에 어떤 것들이 보이시나요?';
         addMessage('assistant', fallback);
-        speak(fallback);
+        playTTS(fallback, null);
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -235,7 +266,7 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
     try {
       const result = await sendWalkChat(messages, text);
       addMessage('assistant', result.ai_text);
-      speak(result.ai_text);
+      playTTS(result.ai_text, result.audio_base64);
     } catch (e: any) {
       Alert.alert('오류', e?.message ?? '응답을 받지 못했습니다.');
     } finally {
@@ -267,7 +298,7 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
     try {
       const response = await sendWalkChat(messages, undefined, imageUri, mimeType);
       addMessage('assistant', response.ai_text);
-      speak(response.ai_text);
+      playTTS(response.ai_text, response.audio_base64);
     } catch (e: any) {
       Alert.alert('오류', e?.message ?? '사진 처리 중 오류가 발생했습니다.');
     } finally {
@@ -279,9 +310,12 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
 
   const handleEnd = () => {
     Speech.stop();
+    try { audioPlayer.pause(); } catch {}
     setShowModal(false);
     if (timerRef.current) clearInterval(timerRef.current);
     locationSubRef.current?.remove();
+    // 세션 종료 신호 전송 (대화 요약 → 장기 기억 저장, fire-and-forget)
+    endWalkSession();
     onEnd();
   };
 
