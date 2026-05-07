@@ -7,8 +7,8 @@ import {
   Modal,
   SafeAreaView,
 } from 'react-native';
-import ActiveWalkScreen from './activeWalkScreen';
-import WalkCourseScreen from './walkCourseScreen';
+import ActiveWalkScreen from './activewalkscreen';
+import WalkCourseScreen from './walkcoursescreen';
 import { router } from 'expo-router';
 
 type Mode = null | 'select' | 'active' | 'course';
