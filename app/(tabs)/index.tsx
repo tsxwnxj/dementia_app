@@ -107,7 +107,7 @@ export default function HomeScreen() {
         onPress={handleStartExercise}
         disabled={isDone}
       >
-        <Text style={[styles.questCardText, { fontSize: 22 * fontScale }]}>🖐️ 손 운동</Text>
+        <Text style={[styles.questCardText, { fontSize: 22 * fontScale}]}>🖐️ 손 운동</Text>
         <Text style={styles.questCount}>
           {isDone ? '✅' : sessionCount === 1 ? '1 / 2' : ''}
         </Text>
@@ -119,7 +119,7 @@ export default function HomeScreen() {
         disabled={walkDone}
         onPress={() => router.push('/WalkScreen/WalkScreen')}
       >
-        <Text style={[styles.questCardText, { fontSize: 22 * fontScale }]}>🚶 산책하기</Text>
+        <Text style={[styles.questCardText, { fontSize: 22 * fontScale}]}>🚶 산책하기</Text>
         <Text style={styles.questCount}>
           {walkDone ? '✅' : ''}
         </Text>
@@ -130,7 +130,7 @@ export default function HomeScreen() {
         style={styles.questCard}
         onPress={() => router.push('/(tabs)/minigame')}
       >
-        <Text style={[styles.questCardText, { fontSize: 22 * fontScale }]}>🎮 미니게임</Text>
+        <Text style={[styles.questCardText, { fontSize: 22 * fontScale}]}>🎮 미니게임</Text>
       </TouchableOpacity>
 
     </ScrollView>
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', backgroundColor: '#4A90E2', borderRadius: 6 },
 
   questCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#4DA56F',
     borderRadius: 20,
     padding: 24,
     minHeight: 110,
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 5,
   },
-  questCardText: { fontWeight: '700', color: '#212121', textAlign: 'center' },
+  questCardText: { fontWeight: '700', color: '#fff', textAlign: 'center' },
   questBtnDone: { backgroundColor: '#E8F5E9', borderWidth: 2, borderColor: '#4DA56F' },
   questCount: { color: '#4DA56F', fontWeight: '700', fontSize: 16, position: 'absolute', right: 24 },
 
