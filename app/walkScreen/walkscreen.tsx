@@ -7,7 +7,7 @@ import {
   Modal,
   SafeAreaView,
 } from 'react-native';
-import ActiveWalkScreen from './activewalkscreen';
+import ActivewalkScreen from './activewalkscreen';
 import WalkCourseScreen from './walkcoursescreen';
 import { router } from 'expo-router';
 
@@ -30,7 +30,7 @@ export default function WalkScreen() {
 
   if (mode === 'active' && walkType) {
     return (
-      <ActiveWalkScreen
+      <ActivewalkScreen
         walkType={walkType}
         onEnd={() => setMode(null)}
       />

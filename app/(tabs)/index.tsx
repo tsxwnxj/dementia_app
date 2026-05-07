@@ -56,17 +56,17 @@ export default function HomeScreen() {
               { text: '나중에 하기', style: 'cancel' },
               {
                 text: '연습하기',
-                onPress: () => router.push({ pathname: '/(tabs)/session', params: { isPractice: 'true' } }),
+                onPress: () => router.push({ pathname: '/tutorial', params: { isPractice: 'true' } }),
               },
             ]
           );
           return;
         }
       }
-      router.push('/(tabs)/session');
+      router.push({ pathname: '/tutorial', params: { isPractice: 'false' } });
     } catch (e) {
       console.error(e);
-      router.push('/(tabs)/session');
+      router.push({ pathname: '/tutorial', params: { isPractice: 'false' } });
     }
   };
 
@@ -107,8 +107,8 @@ export default function HomeScreen() {
         onPress={handleStartExercise}
         disabled={isDone}
       >
-        <Text style={[styles.questCardText, { fontSize: 22 * fontScale}]}>🖐️ 손 운동</Text>
-        <Text style={styles.questCount}>
+        <Text style={[styles.questCardText, { fontSize: 22 * fontScale }]}>🖐️ 손 운동</Text>
+        <Text style={[styles.questCount, isDone && styles.questCountDone]}>
           {isDone ? '✅' : sessionCount === 1 ? '1 / 2' : ''}
         </Text>
       </TouchableOpacity>
@@ -119,8 +119,8 @@ export default function HomeScreen() {
         disabled={walkDone}
         onPress={() => router.push('/walkScreen/walkscreen')}
       >
-        <Text style={[styles.questCardText, { fontSize: 22 * fontScale}]}>🚶 산책하기</Text>
-        <Text style={styles.questCount}>
+        <Text style={[styles.questCardText, { fontSize: 22 * fontScale }]}>🚶 산책하기</Text>
+        <Text style={[styles.questCount, walkDone && styles.questCountDone]}>
           {walkDone ? '✅' : ''}
         </Text>
       </TouchableOpacity>
@@ -130,7 +130,7 @@ export default function HomeScreen() {
         style={styles.questCard}
         onPress={() => router.push('/(tabs)/minigame')}
       >
-        <Text style={[styles.questCardText, { fontSize: 22 * fontScale}]}>🎮 미니게임</Text>
+        <Text style={[styles.questCardText, { fontSize: 22 * fontScale }]}>🎮 미니게임</Text>
       </TouchableOpacity>
 
     </ScrollView>
@@ -195,7 +195,8 @@ const styles = StyleSheet.create({
   },
   questCardText: { fontWeight: '700', color: '#fff', textAlign: 'center' },
   questBtnDone: { backgroundColor: '#E8F5E9', borderWidth: 2, borderColor: '#4DA56F' },
-  questCount: { color: '#4DA56F', fontWeight: '700', fontSize: 16, position: 'absolute', right: 24 },
+  questCount: { color: '#fff', fontWeight: '700', fontSize: 16, position: 'absolute', right: 24 },
+  questCountDone: { color: '#4DA56F' },
 
   tipCard: {
     backgroundColor: '#fff',
