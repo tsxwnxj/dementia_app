@@ -117,7 +117,7 @@ export default function HomeScreen() {
       <TouchableOpacity
         style={[styles.questCard, walkDone && styles.questBtnDone]}
         disabled={walkDone}
-        onPress={() => router.push('/WalkScreen/WalkScreen')}
+        onPress={() => router.push('/walkScreen/walkScreen')}
       >
         <Text style={[styles.questCardText, { fontSize: 22 * fontScale}]}>🚶 산책하기</Text>
         <Text style={styles.questCount}>
