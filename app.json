@@ -71,7 +71,8 @@
           "nativeAppKey": "e762d1d9bb4d6747b68bef981907a99a"
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      "expo-image"
     ],
     "assetBundlePatterns": [
       "assets/**"
