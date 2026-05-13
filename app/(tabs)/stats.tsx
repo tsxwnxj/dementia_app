@@ -223,7 +223,7 @@ export default function StatsScreen() {
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${weeklyRate}%` }]} />
         </View>
-        <Text style={[styles.progressText, { fontSize: 16 * fontScale }]}>운동과 산책하기를 완료하세요!</Text>
+        <Text style={[styles.progressText, { fontSize: 16 * fontScale }]}>손 운동과 산책하기를 완료하세요!</Text>
       </View>
 
       <View style={styles.card}>
