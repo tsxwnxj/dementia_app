@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { db, auth } from '../../services/firebase';
 import { collection, query, where, orderBy, onSnapshot, getDocs, Timestamp } from 'firebase/firestore';
 import { useFontSize } from '../../context/FontSizeContext';
+import { fetchCognitiveReport, CognitiveReport } from '../../services/walkChatService';
 
 interface Session {
   completedAt: Timestamp;
@@ -26,6 +27,7 @@ export default function StatsScreen() {
   const [calendarDays, setCalendarDays] = useState<{ date: number; status: DayStatus }[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [recentRecords, setRecentRecords] = useState<RecordItem[]>([]);
+  const [cognitiveReport, setCognitiveReport] = useState<CognitiveReport | null>(null);
 
   const checkDayComplete = async (uid: string, date: Date): Promise<{ status: DayStatus; sessionCount: number; speakCount: number }> => {
     const start = new Date(date);
@@ -117,6 +119,12 @@ export default function StatsScreen() {
 
     setRecentRecords(records.reverse());
   };
+
+  useEffect(() => {
+    fetchCognitiveReport(30).then(report => {
+      if (report) setCognitiveReport(report);
+    });
+  }, []);
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
@@ -310,6 +318,88 @@ export default function StatsScreen() {
           ))
         )}
       </View>
+
+      {/* 대화 분석 점수 카드 */}
+      <View style={styles.card}>
+        <View style={styles.cognitiveHeader}>
+          <Text style={[styles.cardTitle, { fontSize: 20 * fontScale }]}>대화 분석 점수</Text>
+          {cognitiveReport && cognitiveReport.sessions > 0 && (
+            <View style={[
+              styles.trendBadge,
+              cognitiveReport.trend === 'improving' && styles.trendImproving,
+              cognitiveReport.trend === 'declining' && styles.trendDeclining,
+            ]}>
+              <Text style={[styles.trendText, { fontSize: 13 * fontScale }]}>
+                {cognitiveReport.trend === 'improving' ? '↑ 호전' :
+                 cognitiveReport.trend === 'declining' ? '↓ 주의' : '→ 안정'}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {!cognitiveReport || cognitiveReport.sessions === 0 ? (
+          <Text style={[styles.emptyText, { fontSize: 18 * fontScale }]}>
+            산책 대화를 완료하면 분석 결과가 나타나요
+          </Text>
+        ) : (
+          <>
+            {/* 종합 점수 */}
+            <View style={styles.overallRow}>
+              <Text style={[styles.overallLabel, { fontSize: 16 * fontScale }]}>
+                종합 ({cognitiveReport.sessions}회 평균)
+              </Text>
+              <Text style={[styles.overallScore, { fontSize: 28 * fontScale }]}>
+                {cognitiveReport.averages.overall_score?.toFixed(1)}
+                <Text style={[styles.overallMax, { fontSize: 16 * fontScale }]}> / 5.0</Text>
+              </Text>
+            </View>
+
+            {/* 5가지 지표 바 */}
+            {[
+              { key: 'short_term_memory',     label: '단기 기억력' },
+              { key: 'time_orientation',       label: '시간 지남력' },
+              { key: 'language_fluency',       label: '언어 유창성' },
+              { key: 'emotional_consistency',  label: '감정 일관성' },
+              { key: 'topic_maintenance',      label: '주제 유지력' },
+            ].map(({ key, label }) => {
+              const val = cognitiveReport.averages[key] ?? 0;
+              const pct = (val / 5) * 100;
+              const barColor = val >= 4 ? '#58b84b' : val >= 3 ? '#f5a623' : '#e05252';
+              return (
+                <View key={key} style={styles.indicatorRow}>
+                  <Text style={[styles.indicatorLabel, { fontSize: 14 * fontScale }]}>{label}</Text>
+                  <View style={styles.barContainer}>
+                    <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: barColor }]} />
+                  </View>
+                  <Text style={[styles.indicatorScore, { fontSize: 14 * fontScale }]}>
+                    {val.toFixed(1)}
+                  </Text>
+                </View>
+              );
+            })}
+
+            {/* 최근 세션 점수 목록 */}
+            <Text style={[styles.recentSessionTitle, { fontSize: 15 * fontScale }]}>최근 세션</Text>
+            {cognitiveReport.records.slice(-5).reverse().map((record, i) => {
+              const date = new Date(record.scored_at * 1000).toLocaleDateString('ko-KR');
+              const anomaly = record.anomaly_detected === 1;
+              return (
+                <View key={i} style={styles.sessionScoreRow}>
+                  <Text style={[styles.sessionDate, { fontSize: 13 * fontScale }]}>{date}</Text>
+                  <View style={styles.sessionRight}>
+                    {anomaly && (
+                      <Text style={[styles.anomalyBadge, { fontSize: 11 * fontScale }]}>⚠️</Text>
+                    )}
+                    <Text style={[styles.sessionScore, { fontSize: 15 * fontScale, color: record.overall_score >= 4 ? '#58b84b' : record.overall_score >= 3 ? '#f5a623' : '#e05252' }]}>
+                      {record.overall_score.toFixed(1)}점
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -347,4 +437,25 @@ const styles = StyleSheet.create({
   recordDate: { color: '#616161', fontWeight: '600' },
   recordTime: { color: '#9E9E9E', marginTop: 2 },
   recordDetail: { color: '#4DA56F', fontWeight: '700' },
+  // 인지 점수 카드
+  cognitiveHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  trendBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: '#E8F5E9' },
+  trendImproving: { backgroundColor: '#E8F5E9' },
+  trendDeclining: { backgroundColor: '#FFEBEE' },
+  trendText: { fontWeight: '700', color: '#4DA56F' },
+  overallRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 16, borderBottomWidth: 0.5, borderBottomColor: '#F0F0F0' },
+  overallLabel: { color: '#616161', fontWeight: '600' },
+  overallScore: { fontWeight: '700', color: '#4DA56F' },
+  overallMax: { color: '#9E9E9E', fontWeight: '400' },
+  indicatorRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  indicatorLabel: { color: '#616161', width: 80 },
+  barContainer: { flex: 1, height: 10, backgroundColor: '#F0F0F0', borderRadius: 5, marginHorizontal: 10, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 5 },
+  indicatorScore: { color: '#424242', fontWeight: '600', width: 28, textAlign: 'right' },
+  recentSessionTitle: { color: '#9E9E9E', fontWeight: '600', marginTop: 16, marginBottom: 8 },
+  sessionScoreRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: '#F5F5F5' },
+  sessionDate: { color: '#616161' },
+  sessionRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  anomalyBadge: {},
+  sessionScore: { fontWeight: '700' },
 });

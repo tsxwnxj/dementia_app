@@ -39,31 +39,88 @@ async function getIdToken(): Promise<string> {
   return user.getIdToken();
 }
 
+export interface CognitiveScore {
+  short_term_memory: number;
+  time_orientation: number;
+  language_fluency: number;
+  emotional_consistency: number;
+  topic_maintenance: number;
+  overall_score: number;
+  topic_breaks: string[];
+  analysis_note: string;
+  baseline: number | null;
+  baseline_deviation: number | null;
+  anomaly_detected: boolean;
+}
+
+export interface WalkEndResult {
+  ok: boolean;
+  message: string;
+  cognitive_score: CognitiveScore | null;
+}
+
+export interface CognitiveReportRecord {
+  session_id: string;
+  scored_at: number;
+  short_term_memory: number;
+  time_orientation: number;
+  language_fluency: number;
+  emotional_consistency: number;
+  topic_maintenance: number;
+  overall_score: number;
+  topic_breaks: string[];
+  analysis_note: string;
+  baseline_deviation: number | null;
+  anomaly_detected: number;
+}
+
+export interface CognitiveReport {
+  trend: 'improving' | 'declining' | 'stable' | 'insufficient_data';
+  sessions: number;
+  days: number;
+  averages: Record<string, number>;
+  records: CognitiveReportRecord[];
+}
+
 /** 세션 초기화 (산책 종료 시 호출) */
 export function resetSession(): void {
   _sessionId = null;
 }
 
 /**
- * 산책 세션 종료 — 서버에 종료 신호 전송.
- * 서버가 대화 내용을 LLM으로 요약해 장기 기억에 누적 저장 (백그라운드).
- * 실패해도 앱 동작에 영향 없음.
+ * 산책 세션 종료 — 서버에 종료 신호 전송 + 인지 점수 반환.
  */
-export async function endWalkSession(): Promise<void> {
-  if (!_sessionId) return;
+export async function endWalkSession(): Promise<WalkEndResult | null> {
+  if (!_sessionId) return null;
 
   const sessionId = _sessionId;
-  resetSession(); // UI 응답성을 위해 먼저 초기화
+  resetSession();
 
   try {
     const token = await getIdToken();
-    await fetch(`${API_BASE}/walk/end`, {
+    const res = await fetch(`${API_BASE}/walk/end`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ session_id: sessionId }),
     });
+    if (!res.ok) return null;
+    return res.json() as Promise<WalkEndResult>;
   } catch {
-    // 네트워크 오류 시 무시 — 다음 세션에 영향 없음
+    return null;
+  }
+}
+
+/** 인지 기능 추세 리포트 조회 */
+export async function fetchCognitiveReport(days = 30): Promise<CognitiveReport | null> {
+  try {
+    const token = await getIdToken();
+    const res = await fetch(`${API_BASE}/walk/cognitive-report?days=${days}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    return res.json() as Promise<CognitiveReport>;
+  } catch {
+    return null;
   }
 }
 
