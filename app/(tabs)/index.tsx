@@ -93,8 +93,9 @@ export default function HomeScreen() {
         </View>
 
         <View style={[styles.progressCard, styles.half, styles.uniformCard]}>
-          <Text style={[styles.progressLabel, { fontSize: 18 * fontScale }]}>일일 퀘스트</Text>
-          <Text style={[styles.progressCount, { fontSize: 38 * fontScale }]}>{totalDone} / 2</Text>
+          <Text style={[styles.progressLabel, { fontSize: 20 * fontScale }]}>오늘의 미션</Text>
+          <Text style={[styles.progressLabel, { fontSize: 15 * fontScale }]}>손 운동과 산책하기를 완료하세요!</Text>
+          <Text style={[styles.progressCount, { fontSize: 30 * fontScale }]}>{totalDone} / 2</Text>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: `${Math.min((totalDone / 2) * 100, 100)}%` }]} />
           </View>

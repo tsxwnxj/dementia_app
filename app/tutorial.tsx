@@ -8,32 +8,32 @@ import { Image } from 'expo-image';
 const GESTURES = [
   {
     name: '손가락 움직이기',
-    desc: '손가락을 천천히 움직여 보세요.',
+    desc: '손가락을 천천히 움직여 보세요',
     gif: require('../assets/gestures/finger_wave.gif'),
   },
   {
     name: '손 털기',
-    desc: '손을 가볍게 털어 보세요.',
+    desc: '손을 가볍게 털어 보세요',
     gif: require('../assets/gestures/hand_shake.gif'),
   },
   {
     name: '손가락 접기',
-    desc: '손가락을 하나씩 접어 보세요.',
+    desc: '손가락을 하나씩 접어 보세요',
     gif: require('../assets/gestures/finger_fold.gif'),
   },
   {
     name: '주먹 쥐고 펴기',
-    desc: '주먹을 쥐었다가 펴 보세요.',
+    desc: '주먹을 쥐었다가 펴 보세요',
     gif: require('../assets/gestures/fist_open.gif'),
   },
   {
     name: '엇갈려 주먹 쥐고 펴기',
-    desc: '양손을 엇갈려 주먹을 쥐었다가 펴 보세요.',
+    desc: '양손을 엇갈려 주먹을 쥐었다가 펴 보세요',
     gif: require('../assets/gestures/cross_fist.gif'),
   },
   {
     name: '손끝 박수',
-    desc: '손끝끼리 가볍게 박수를 쳐 보세요.',
+    desc: '손끝끼리 가볍게 박수를 쳐 보세요',
     gif: require('../assets/gestures/fingertip_clap.gif'),
   },
 ];
@@ -73,36 +73,21 @@ export default function TutorialScreen() {
       {/* 상단 */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text
-            style={[
-              styles.backButtonText,
-              { fontSize: 14 * fontScale },
-            ]}
-          >
+          <Text style={[styles.backButtonText, { fontSize: 14 * fontScale }]}>
             {'<'} 뒤로
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={handleSkip}>
-          <Text
-            style={[
-              styles.skipText,
-              { fontSize: 14 * fontScale },
-            ]}
-          >
+          <Text style={[styles.skipText, { fontSize: 14 * fontScale }]}>
             건너뛰기
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* 제목 */}
-      <Text
-        style={[
-          styles.title,
-          { fontSize: 24 * fontScale },
-        ]}
-      >
-        운동 튜토리얼
+      <Text style={[styles.title, { fontSize: 26 * fontScale }]}>
+        손 운동 방법
       </Text>
 
       {/* 진행 표시 */}
@@ -110,10 +95,7 @@ export default function TutorialScreen() {
         {GESTURES.map((_, i) => (
           <View
             key={i}
-            style={[
-              styles.stepDot,
-              i === step && styles.stepDotActive,
-            ]}
+            style={[styles.stepDot, i === step && styles.stepDotActive]}
           />
         ))}
       </View>
@@ -123,43 +105,37 @@ export default function TutorialScreen() {
         <TouchableOpacity
           onPress={handlePrev}
           disabled={step === 0}
-          style={[
-            styles.arrowBtn,
-            step === 0 && styles.arrowDisabled,
-          ]}
+          style={[styles.arrowBtn, step === 0 && styles.arrowDisabled]}
         >
-          <Ionicons
-            name="chevron-back"
-            size={40 * fontScale}
-            color="#4DA56F"
-          />
+          <Ionicons name="chevron-back" size={40 * fontScale} color="#4DA56F" />
         </TouchableOpacity>
 
-        <View style={styles.gifBox}>
-          {gesture.gif ? (
-            <Image
-              source={gesture.gif}
-              style={styles.gifImage}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={styles.gifPlaceholder}>
-              <Text
-                style={[
-                  styles.gifPlaceholderText,
-                  { fontSize: 16 * fontScale },
-                ]}
-              >
-                🎬 GIF 준비 중
-              </Text>
-            </View>
-          )}
+        {/* shadow 담당 바깥 View */}
+        <View style={styles.gifBoxShadow}>
+          {/* clip 담당 안쪽 View */}
+          <View style={styles.gifBoxInner}>
+            {gesture.gif ? (
+              <Image
+                source={gesture.gif}
+                style={styles.gifImage}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={styles.gifPlaceholder}>
+                <Text
+                  style={[
+                    styles.gifPlaceholderText,
+                    { fontSize: 16 * fontScale },
+                  ]}
+                >
+                  🎬 GIF 준비 중
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
-        <TouchableOpacity
-          onPress={handleNext}
-          style={styles.arrowBtn}
-        >
+        <TouchableOpacity onPress={handleNext} style={styles.arrowBtn}>
           <Ionicons
             name="chevron-forward"
             size={40 * fontScale}
@@ -170,37 +146,19 @@ export default function TutorialScreen() {
 
       {/* 설명 */}
       <View style={styles.infoBox}>
-        <Text
-          style={[
-            styles.gestureName,
-            { fontSize: 26 * fontScale },
-          ]}
-        >
+        <Text style={[styles.gestureName, { fontSize: 26 * fontScale }]}>
           {gesture.name}
         </Text>
 
-        <Text
-          style={[
-            styles.gestureDesc,
-            { fontSize: 17 * fontScale },
-          ]}
-        >
+        <Text style={[styles.gestureDesc, { fontSize: 17 * fontScale }]}>
           {gesture.desc}
         </Text>
       </View>
 
       {/* 마지막 버튼 */}
       {isLast && (
-        <TouchableOpacity
-          style={styles.startBtn}
-          onPress={handleNext}
-        >
-          <Text
-            style={[
-              styles.startBtnText,
-              { fontSize: 18 * fontScale },
-            ]}
-          >
+        <TouchableOpacity style={styles.startBtn} onPress={handleNext}>
+          <Text style={[styles.startBtnText, { fontSize: 18 * fontScale }]}>
             운동 시작! 🖐️
           </Text>
         </TouchableOpacity>
@@ -277,16 +235,12 @@ const styles = StyleSheet.create({
     opacity: 0.2,
   },
 
-  // GIF 전체 박스 크기 통일
-  gifBox: {
+  // shadow 담당 (overflow: hidden 없음)
+  gifBoxShadow: {
     width: 260,
     height: 320,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: 20,
     backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 10,
-
     shadowColor: '#000',
     shadowOffset: {
       width: 5,
@@ -297,11 +251,19 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 
-  // GIF 자동 맞춤
+  // clip 담당 (overflow: hidden으로 모서리 클리핑)
+  gifBoxInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#fff'
+  },
+
+  // GIF 이미지 꽉 채움
   gifImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 24,
   },
 
   gifPlaceholder: {
