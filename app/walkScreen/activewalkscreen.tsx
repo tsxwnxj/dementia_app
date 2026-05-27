@@ -38,10 +38,8 @@ import {
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
 
-type WalkType = 'indoor' | 'outdoor';
-
 interface Props {
-  walkType: WalkType;
+  walkType: 'outdoor';
   onEnd: () => void;
 }
 
@@ -68,7 +66,7 @@ const WALK_INTERVAL = 10 * 60;
 
 // ─── 컴포넌트 ─────────────────────────────────────────────────────────────────
 
-export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
+export default function ActiveWalkScreen({ onEnd }: Props) {
   // 산책 통계
   const [elapsed, setElapsed] = useState(0);
   const [distance, setDistance] = useState(0);
@@ -97,41 +95,22 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   }, []);
 
-  // ── TTS 재생 — 서버 edge-tts 오디오 우선, 없으면 expo-speech 폴백 ──────────
-
+  // ── TTS 재생 ─────────────────────────────────────────────────────────────
   const playTTS = useCallback(async (text: string, audio_base64: string | null) => {
     if (audio_base64) {
-      try {
-        const uri = `${FileSystem.cacheDirectory}tts_${Date.now()}.mp3`;
-        await FileSystem.writeAsStringAsync(uri, audio_base64, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        setTtsUri(uri);
-        setTimeout(() => audioPlayer.play(), 100);
-        return;
-      } catch {
-        // 폴백으로 내려감
-      }
-    }
-    // expo-speech 폴백 — 문장 단위로 나눠서 순서대로 읽기 (긴 텍스트 잘림 방지)
-    Speech.stop();
-    const sentences = text.match(/[^.!?]+[.!?]*/g)?.map(s => s.trim()).filter(Boolean) ?? [text];
-    const speakNext = (idx: number) => {
-      if (idx >= sentences.length) return;
-      Speech.speak(sentences[idx], {
-        language: 'ko-KR',
-        rate: 0.9,
-        pitch: 1.0,
-        onDone: () => speakNext(idx + 1),
+      const uri = `${FileSystem.cacheDirectory}tts_${Date.now()}.mp3`;
+      await FileSystem.writeAsStringAsync(uri, audio_base64, {
+        encoding: FileSystem.EncodingType.Base64,
       });
-    };
-    speakNext(0);
-  }, [audioPlayer]);
+      setTtsUri(uri);
+    } else {
+      Speech.speak(text, { language: 'ko' });
+    }
+  }, []);
 
-  // ── 산책 시작 인사말 (실외만) ─────────────────────────────────────────────
+  // ── 산책 시작 인사말 ──────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (walkType !== 'outdoor') return;
     (async () => {
       try {
         const result: WalkStartResult = await fetchWalkGreeting(
@@ -182,10 +161,9 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isRunning]);
 
-  // ── GPS 추적 (실외) ───────────────────────────────────────────────────────
+  // ── GPS 추적 ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (walkType !== 'outdoor') return;
     (async () => {
       const { status: existing } = await Location.getForegroundPermissionsAsync();
       let finalStatus = existing;
@@ -225,13 +203,7 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
       );
     })();
     return () => { locationSubRef.current?.remove(); };
-  }, [walkType]);
-
-  // ── 실내 걸음 수 추정 ────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (walkType === 'indoor') setSteps(Math.round(elapsed * 1.5));
-  }, [elapsed, walkType]);
+  }, []);
 
   // ── 알림 ─────────────────────────────────────────────────────────────────
 
@@ -274,7 +246,7 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
     }
   };
 
-  // ─── 카메라: 사진 찍어서 전송 ───────────────────────────────────────────
+  // ─── 카메라 ───────────────────────────────────────────────────────────────
 
   const takePicture = async () => {
     if (isSending) return;
@@ -289,10 +261,8 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
       allowsEditing: false,
     });
     if (result.canceled || !result.assets[0]) return;
-
     const imageUri = result.assets[0].uri;
     const mimeType = result.assets[0].mimeType ?? 'image/jpeg';
-
     setIsSending(true);
     addMessage('user', '📷 사진을 전송했습니다.');
     try {
@@ -314,14 +284,11 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
     setShowModal(false);
     if (timerRef.current) clearInterval(timerRef.current);
     locationSubRef.current?.remove();
-    // 세션 종료 신호 전송 (대화 요약 → 장기 기억 저장, fire-and-forget)
     endWalkSession();
     onEnd();
   };
 
   // ─── 렌더 ─────────────────────────────────────────────────────────────────
-
-  const isOutdoor = walkType === 'outdoor';
 
   return (
     <KeyboardAvoidingView
@@ -329,9 +296,7 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <SafeAreaView style={styles.container}>
-        <Text style={styles.typeLabel}>
-          {isOutdoor ? '🌳 실외 산책' : '🏠 실내 산책'}
-        </Text>
+        <Text style={styles.typeLabel}>🌳 실외 산책</Text>
 
         {/* 타이머 */}
         <View style={styles.timerBox}>
@@ -343,12 +308,10 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
 
         {/* 통계 */}
         <View style={styles.statsRow}>
-          {isOutdoor && (
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{formatDistance(distance)}</Text>
-              <Text style={styles.statLabel}>거리</Text>
-            </View>
-          )}
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{formatDistance(distance)}</Text>
+            <Text style={styles.statLabel}>거리</Text>
+          </View>
           <View style={styles.statBox}>
             <Text style={styles.statValue}>{steps.toLocaleString()}</Text>
             <Text style={styles.statLabel}>걸음 수</Text>
@@ -359,74 +322,71 @@ export default function ActiveWalkScreen({ walkType, onEnd }: Props) {
           </View>
         </View>
 
-        {/* AI 대화 패널 (실외 전용) */}
-        {isOutdoor && (
-          <View style={styles.chatPanel}>
-            <Text style={styles.chatPanelTitle}>💬 AI 산책 동반자</Text>
+        {/* AI 대화 패널 */}
+        <View style={styles.chatPanel}>
+          <Text style={styles.chatPanelTitle}>💬 AI 산책 동반자</Text>
 
-            {/* 대화 목록 */}
-            <ScrollView
-              ref={scrollRef}
-              style={styles.chatScroll}
-              contentContainerStyle={styles.chatContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              {messages.length === 0 ? (
-                <Text style={styles.chatEmpty}>AI가 인사말을 준비하고 있습니다...</Text>
-              ) : (
-                messages.map((msg, idx) => (
-                  <View
-                    key={idx}
-                    style={[styles.bubble, msg.role === 'user' ? styles.bubbleUser : styles.bubbleAI]}
-                  >
-                    <Text style={msg.role === 'user' ? styles.bubbleUserText : styles.bubbleAIText}>
-                      {msg.content}
-                    </Text>
-                  </View>
-                ))
-              )}
-              {isSending && (
-                <View style={styles.typingBubble}>
-                  <ActivityIndicator color="#95D5B2" size="small" />
-                  <Text style={styles.typingText}>  답변 생성 중...</Text>
+          <ScrollView
+            ref={scrollRef}
+            style={styles.chatScroll}
+            contentContainerStyle={styles.chatContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {messages.length === 0 ? (
+              <Text style={styles.chatEmpty}>AI가 인사말을 준비하고 있습니다...</Text>
+            ) : (
+              messages.map((msg, idx) => (
+                <View
+                  key={idx}
+                  style={[styles.bubble, msg.role === 'user' ? styles.bubbleUser : styles.bubbleAI]}
+                >
+                  <Text style={msg.role === 'user' ? styles.bubbleUserText : styles.bubbleAIText}>
+                    {msg.content}
+                  </Text>
                 </View>
-              )}
-            </ScrollView>
+              ))
+            )}
+            {isSending && (
+              <View style={styles.typingBubble}>
+                <ActivityIndicator color="#95D5B2" size="small" />
+                <Text style={styles.typingText}>  답변 생성 중...</Text>
+              </View>
+            )}
+          </ScrollView>
 
-            {/* 텍스트 입력 + 카메라 */}
-            <View style={styles.inputRow}>
-              <TextInput
-                style={styles.textInput}
-                value={inputText}
-                onChangeText={setInputText}
-                placeholder="메시지를 입력하세요..."
-                placeholderTextColor="#95D5B2"
-                multiline
-                maxLength={200}
-                editable={!isSending}
-                onSubmitEditing={sendText}
-                returnKeyType="send"
-              />
-              <TouchableOpacity
-                style={[styles.sendBtn, (!inputText.trim() || isSending) && styles.btnDisabled]}
-                onPress={sendText}
-                disabled={!inputText.trim() || isSending}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.sendBtnText}>전송</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.cameraBtn, isSending && styles.btnDisabled]}
-                onPress={takePicture}
-                disabled={isSending}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.cameraIcon}>📷</Text>
-              </TouchableOpacity>
-            </View>
+          {/* 텍스트 입력 + 카메라 버튼 */}
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.textInput}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="메시지를 입력하세요..."
+              placeholderTextColor="#95D5B2"
+              multiline
+              maxLength={200}
+              editable={!isSending}
+              onSubmitEditing={sendText}
+              returnKeyType="send"
+            />
+            <TouchableOpacity
+              style={[styles.sendBtn, (!inputText.trim() || isSending) && styles.btnDisabled]}
+              onPress={sendText}
+              disabled={!inputText.trim() || isSending}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sendBtnText}>전송</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.cameraBtn, isSending && styles.btnDisabled]}
+              onPress={takePicture}
+              disabled={isSending}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.cameraIcon}>📷</Text>
+            </TouchableOpacity>
           </View>
-        )}
+        </View>
 
         {/* 컨트롤 버튼 */}
         <TouchableOpacity
@@ -485,7 +445,6 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
   statLabel: { fontSize: 12, color: '#95D5B2', marginTop: 3 },
 
-  // AI 대화 패널
   chatPanel: {
     flex: 1, width: '100%',
     backgroundColor: '#2D6A4F', borderRadius: 20,
@@ -496,7 +455,6 @@ const styles = StyleSheet.create({
   chatContent: { paddingBottom: 8, gap: 6 },
   chatEmpty: { color: '#95D5B2', textAlign: 'center', marginTop: 20, fontSize: 13 },
 
-  // 말풍선
   bubble: { maxWidth: '85%', borderRadius: 14, paddingVertical: 8, paddingHorizontal: 12 },
   bubbleAI: { backgroundColor: '#40916C', alignSelf: 'flex-start' },
   bubbleUser: { backgroundColor: '#52B788', alignSelf: 'flex-end' },
@@ -505,7 +463,6 @@ const styles = StyleSheet.create({
   typingBubble: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', padding: 8 },
   typingText: { color: '#95D5B2', fontSize: 13 },
 
-  // 텍스트 입력 행
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 10 },
   textInput: {
     flex: 1,
@@ -536,7 +493,6 @@ const styles = StyleSheet.create({
   cameraIcon: { fontSize: 22 },
   btnDisabled: { opacity: 0.4 },
 
-  // 컨트롤 버튼
   pauseBtn: {
     backgroundColor: '#52B788', borderRadius: 50,
     paddingVertical: 14, paddingHorizontal: 36,
@@ -550,7 +506,6 @@ const styles = StyleSheet.create({
   },
   endBtnText: { color: '#FF6B6B', fontSize: 15, fontWeight: 'bold' },
 
-  // 모달
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center', alignItems: 'center',
